@@ -54,5 +54,7 @@ namespace Crunch.GraphX
                 parent.InputChanged -= change;
             }
         }
+
+        public override string ToString() => Text;
     }
 }
