@@ -9,18 +9,18 @@ using Xamarin.Forms.Extensions;
 namespace Crunch.GraphX
 {
     public delegate void HeightChangedEventHandler(Expression e);
+    public delegate void InputChangedEventHandler();
 
     public class Expression : TouchableStackLayout
     {
         public event HeightChangedEventHandler HeightChanged;
+        public event InputChangedEventHandler InputChanged;
+
         public bool Editable = false;
 
         public new Expression Parent => base.Parent as Expression;
 
-        //public View ChildAt(int index) => Children[index + this.HideCursor(index).ToInt()];
-
         public double FontSize = Text.MaxFontSize;
-
         public static readonly float fontSizeDecrease = 4f / 5f;
 
         public double lastHeight = -1;
@@ -42,16 +42,7 @@ namespace Crunch.GraphX
 
         public Expression(params View[] children) : this() => AddRange(children);
 
-        /*public Expression rim()
-        {
-            while (Children.Count > 0 && Children[Children.Count - 1] is Text && (Children[Children.Count - 1] as Text).Text == ")" && Children[0] is Text && (Children[0] as Text).Text == "(")
-            {
-                RemoveAt(Children.Count - 1);
-                RemoveAt(0);
-            }
-
-            return this;
-        }*/
+        internal void OnInputChanged() => InputChanged?.Invoke();
 
         public void AddRange(params View[] list)
         {
@@ -103,8 +94,6 @@ namespace Crunch.GraphX
             }
         }
 
-        protected virtual double determineFontSize() => Parent.FontSize;
-
         protected override void OnRemoved(View view)
         {
             base.OnRemoved(view);
@@ -114,6 +103,8 @@ namespace Crunch.GraphX
                 HeightRequest = Text.MaxTextHeight;
             }
         }
+
+        protected virtual double determineFontSize() => Parent.FontSize;
 
         protected override void OnAdded(View view)
         {

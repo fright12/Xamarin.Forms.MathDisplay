@@ -10,7 +10,7 @@ namespace Crunch.GraphX
 {
     public static class SoftKeyboard
     {
-        public static Expression Focus;
+        //public static Expression Focus;
         public static CursorView Cursor { get; private set; }
 
         private static int index;
@@ -22,6 +22,24 @@ namespace Crunch.GraphX
 
         public static void Type(string str)
         {
+            /*Exponent previous;
+            if (0 == 1 && str[0] == '^' && index > 0 && (previous = Cursor.Parent.Children[index - 1] as Exponent) != null)
+            {
+                index = previous.Children.Count;
+                previous.Children.Add(Cursor);
+
+                if (str.Length > 1)
+                {
+                    Type(str.Substring(1));
+                }
+            }*/
+
+            if (str[0] == '^' && index > 0 && (Cursor.Parent.Children[index - 1] is Exponent || Cursor.Parent.Children[index - 1] is Fraction))
+            {
+                Cursor.Parent.Insert(Cursor.Parent.Children.BeginningOfPreviousMathObject(index++), new Text("("));
+                Cursor.Parent.Insert(index++, new Text(")"));
+            }
+
             View[] list;
             if (str == "(" || str == ")")
             {
@@ -35,9 +53,10 @@ namespace Crunch.GraphX
             if (list[0] is Fraction && (list[0] as Fraction).Numerator.Children.Count == 0)
             {
                 (list[0] as Fraction).Numerator.Fill(Cursor.Parent.Children, index - 1);
+                (list[0] as Fraction).Numerator.Trim();
                 index -= (list[0] as Fraction).Numerator.Children.Count;
             }
-            
+
             Cursor.Parent.InsertRange(index, list);
             index += list.Length;
 
@@ -51,6 +70,8 @@ namespace Crunch.GraphX
                 (list[list.Length - 1] as Exponent).Add(Cursor);
                 index = 0;
             }
+
+            Cursor.Parent.OnInputChanged();
         }
 
         public static bool Delete()
@@ -87,7 +108,9 @@ namespace Crunch.GraphX
                 index--;
                 Cursor.Parent.RemoveAt(index);
             }
-            
+
+            Cursor.Parent.OnInputChanged();
+
             return true;
         }
 
@@ -159,7 +182,7 @@ namespace Crunch.GraphX
             }
 
             //I'm somewhere I shouldn't be (like a fraction); keep going
-            if (parent.GetType() == typeof(Fraction))
+            if (parent.GetType() == typeof(Fraction))// || (parent.GetType() == typeof(Exponent) && index == parent.Children.Count))
             {
                 //index -= (direction + 1) / 2;
                 parent = checkIndex(direction, parent);
@@ -168,18 +191,32 @@ namespace Crunch.GraphX
             return parent;
         }
 
+        public static void Trim(this Expression e)
+        {
+            while (e.Children.Count > 0 && e.Children[e.Children.Count - 1] is Text && (e.Children[e.Children.Count - 1] as Text).Text == ")" && e.Children[0] is Text && (e.Children[0] as Text).Text == "(")
+            {
+                e.RemoveAt(e.Children.Count - 1);
+                e.RemoveAt(0);
+            }
+        }
+
         public static void Fill(this Expression e, IList<View> input, int index) // where T : IMathList, new()
         {
-            int imbalance = 0;
-            View view = default(View);
+            int count = index - input.BeginningOfPreviousMathObject(index);
+            for (int i = 0; i <= count; i++)
+            {
+                e.Children.Add(input[index - count]);
+            }
+        }
 
-            print.log("starting", index);
+        /*{
+            int imbalance = 0;
+            View view = default;
+
             //Grab stuff until we hit an operand
-            while ((index).IsBetween(0, input.Count - 1) && !(input[index] is Text && Machine.StringClassification.IsOperand((input[index] as Text).Text.Trim()) && (input[index] as Text).Text.Length > 1 && imbalance == 0))
+            while (index.IsBetween(0, input.Count - 1) && !(input[index] is Text && Machine.StringClassification.IsOperand((input[index] as Text).Text.Trim()) && (input[index] as Text).Text.Length > 1 && imbalance == 0))
             {
                 view = input[index];
-
-                input.RemoveAt(index);
 
                 if (view is Text)
                 {
@@ -195,12 +232,44 @@ namespace Crunch.GraphX
                     }
                 }
 
+                input.RemoveAt(index);
                 e.Children.Insert(0, view);
 
                 index--;
             }
 
             //e.Trim();
+        }*/
+
+        public static int BeginningOfPreviousMathObject(this IList<View> input, int index) // where T : IMathList, new()
+        {
+            int imbalance = 0;
+            View view = default;
+
+            Text current;
+            //Grab stuff until we hit an operand
+            while (index.IsBetween(0, input.Count - 1) && !((current = input[index] as Text) != null && Machine.StringClassification.IsOperand(current.Text.Trim()) && current.Text != "-" && imbalance == 0))
+            {
+                view = input[index];
+
+                if (view is Text)
+                {
+                    string s = (view as Text).Text;
+                    if (s == "(" || s == ")")
+                    {
+                        if (s == "(")
+                        {
+                            if (imbalance == 0) break;
+                            imbalance++;
+                        }
+                        if (s == ")") imbalance--;
+                    }
+                }
+
+                index--;
+            }
+
+            return index + 1;
         }
 
         public static View ChildInDirection(this Expression parent, int index, int direction)

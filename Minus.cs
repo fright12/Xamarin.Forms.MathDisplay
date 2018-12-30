@@ -9,7 +9,7 @@ namespace Crunch.GraphX
 {
     public class Minus : Text
     {
-        private View parent;
+        private Expression parent;
 
         public Minus() : base()
         {
@@ -19,32 +19,28 @@ namespace Crunch.GraphX
         protected override void OnParentSet()
         {
             base.OnParentSet();
-            
+
             if (parent != null)
             {
-                parent.ChildAdded -= Parent_ChildAdded;
-                parent.ChildRemoved -= Parent_ChildAdded;
+                parent.InputChanged -= change;
             }
             
             change();
 
             if (Parent != null)
             {
-                Parent.ChildAdded += Parent_ChildAdded;
-                Parent.ChildRemoved += Parent_ChildAdded;
+                Parent.InputChanged += change;
                 parent = Parent;
             }
         }
-
-        private void Parent_ChildAdded(object sender, ElementEventArgs e) => change();
 
         private void change()
         {
             if (Parent != null)
             {
                 int index = this.Index();
-                if (//(Parent.ChildAfter(index) is Text) && (Parent.ChildAfter(index) as Text).Text.Trim().IsNumber() &&
-                    (index == 0 || (Parent.ChildBefore(index) is Text && Machine.StringClassification.IsOperand((Parent.ChildBefore(index) as Text).Text.Trim()))))
+                Text previous;
+                if (Parent.IndexOf(this) == 0 || (previous = Parent.ChildBefore(index) as Text) != null && (Machine.StringClassification.IsOperand(previous.Text.Trim()) || previous.Text.Trim() == "("))
                 {
                     Text = "-";
                 }
@@ -55,8 +51,7 @@ namespace Crunch.GraphX
             }
             else if (parent != null)
             {
-                parent.ChildAdded -= Parent_ChildAdded;
-                parent.ChildRemoved -= Parent_ChildAdded;
+                parent.InputChanged -= change;
             }
         }
     }

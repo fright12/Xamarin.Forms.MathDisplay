@@ -7,13 +7,13 @@ using Xamarin.Forms.Extensions;
 
 namespace Crunch.GraphX
 {
-    public class Text : TouchableLabel
+    public class Text : TouchableLabel, IMathView
     {
         public static int MaxFontSize = 33;
         public static double MaxTextHeight;
 
         public new Expression Parent => base.Parent as Expression;
-
+        
         public Text(bool isVisible = true)
         {
             VerticalOptions = LayoutOptions.Center;
@@ -25,6 +25,8 @@ namespace Crunch.GraphX
         {
             Text = text;
         }
+
+        public void Format(double maxFontSize) => FontSize = maxFontSize;
 
         public override string ToString() => Machine.StringClassification.Simple(Text);
     }

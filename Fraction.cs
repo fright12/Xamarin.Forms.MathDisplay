@@ -9,6 +9,8 @@ namespace Crunch.GraphX
 {
     public class Fraction : Expression
     {
+        public static readonly double StandardPercentFontSizeDecrease = 4.0 / 5;
+
         public Expression Numerator;
         public Expression Denominator;
 

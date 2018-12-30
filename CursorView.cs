@@ -8,7 +8,7 @@ using Xamarin.Forms;
 
 namespace Crunch.GraphX
 {
-    public class CursorView : BoxView
+    public class CursorView : BoxView, IMathView
     {
         public new Expression Parent => base.Parent as Expression;
 
@@ -17,6 +17,8 @@ namespace Crunch.GraphX
             WidthRequest = 1;
             VerticalOptions = LayoutOptions.Center;
         }
+
+        public void Format(double maxFontSize) => HeightRequest = Text.MaxTextHeight * maxFontSize / Text.MaxFontSize;
 
         public override string ToString() => "";
     }
