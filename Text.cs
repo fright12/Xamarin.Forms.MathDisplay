@@ -11,23 +11,25 @@ namespace Crunch.GraphX
     {
         public static int MaxFontSize = 33;
         public static double MaxTextHeight;
+        public static readonly double FontSizeDecrease = 0.8;
 
         public new Expression Parent => base.Parent as Expression;
         
         public Text(bool isVisible = true)
         {
+            //BackgroundColor = Color.Yellow;
             VerticalOptions = LayoutOptions.Center;
             HorizontalOptions = LayoutOptions.Center;
             IsVisible = isVisible;
         }
 
-        public Text(string text) : this()
-        {
-            Text = text;
-        }
+        public Text(string text) : this() => Text = text;
 
-        public void Format(double maxFontSize) => FontSize = maxFontSize;
+        public double Middle => 0.5;
 
+        //public void Format(double maxFontSize) => FontSize = maxFontSize;
+
+        public string ToLatex() => ToString();
         public override string ToString() => Machine.StringClassification.Simple(Text);
     }
 }

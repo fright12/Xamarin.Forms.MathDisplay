@@ -10,14 +10,24 @@ namespace Crunch.GraphX
 {
     public static class Render
     {
-        private static OrderedTrie<Operator> operations;// = new OrderedTrie<Operator>();
+        public static Func<View> CreateLeftParenthesis = () => new Text("(") { VerticalTextAlignment = TextAlignment.Center };
+        public static Func<View> CreateRightParenthesis = () => new Text(")") { VerticalTextAlignment = TextAlignment.Center };
+        public static Func<View> CreateRadical = () => new Text("sqrt(") { VerticalTextAlignment = TextAlignment.Center };
+
+        private static OrderedTrie<Operator> operations;
 
         static Render()
         {
             operations = new OrderedTrie<Operator>(
-                new KeyValuePair<string, Operator>[1]
+                new KeyValuePair<string, Operator>[2]
                 {
-                    new KeyValuePair<string, Operator>("^", new BinaryOperator((o1, o2) => new Quantity(o1, new Exponent(o2.Wrap(false)))))
+                    new KeyValuePair<string, Operator>("sqrt", new UnaryOperator((o) => new Radical(o.Wrap(false)))),
+                    new KeyValuePair<string, Operator>("_", new UnaryOperator((o) => new Expression(TextFormatting.Subscript, o.Wrap(false))))
+                },
+                new KeyValuePair<string, Operator>[2]
+                {
+                    new KeyValuePair<string, Operator>("^", new BinaryOperator(exponents)),
+                    new KeyValuePair<string, Operator>("log", new Operator((o) => new Quantity(new Text("log"), o[0], o[1]), Node<object>.NextNode, (n) => n.Next?.Next))
                 },
                 new KeyValuePair<string, Operator>[1]
                 {
@@ -26,16 +36,25 @@ namespace Crunch.GraphX
                 );
         }
 
+        private static object exponents(object o1, object o2)
+        {
+            View[] exponent = o2.Wrap(false);
+            
+            if (exponent.Length == 1 && exponent[0] is Fraction)
+            {
+                Fraction f = exponent[0] as Fraction;
+                if (f.Numerator.ToString() == "(1)")
+                {
+                    return new Radical(new Expression(Math(f.Denominator.ToString())), o1.Wrap(false));
+                }
+            }
+
+            return new Quantity(o1, new Expression(TextFormatting.Superscript, exponent));
+        }
+
         public static View[] Math(string str)
         {
             Func<object, object> negate = (o) => new Quantity("-", o);
-            /*Resolver negate = (q, n) =>
-            {
-                //if (n.Previous != null && n.Next != null && (n.Previous.Value is string && operations.ContainsKey(n.Previous.Value.ToString())))
-                //{
-                    //Parse.UnaryOperator(q, n, (o) => "-" + o.ToString());
-                //}
-            };*/
 
             print.log("rendering " + str);
             return Parse.Math(str, operations, negate).Wrap(false);
@@ -56,7 +75,7 @@ namespace Crunch.GraphX
             else if (o is Quantity)
             {
                 List<View> list = new List<View>();
-                if ((o as Quantity).Last.Value is Exponent)
+                if ((o as Quantity).Last.Value is Expression && ((o as Quantity).Last.Value as Expression).TextFormat == TextFormatting.Superscript)
                 {
                     parend = false;
                 }
@@ -71,17 +90,10 @@ namespace Crunch.GraphX
                     node = node.Next;
                 }
 
-                /*Quantity q = o as Quantity;
-                if (q.First != q.Last && list[0] is Text && (list[0] as Text).Text == "(" && list.Last() is Text && (list.Last() as Text).Text == ")")
-                {
-                    //list.RemoveAt(0);
-                    //list.RemoveAt(list.Count - 1);
-                }*/
-
                 if (parend)
                 {
-                    list.Insert(0, new Text("("));
-                    list.Add(new Text(")"));
+                    list.Insert(0, CreateLeftParenthesis());
+                    list.Add(CreateRightParenthesis());
                 }
 
                 return list.ToArray();

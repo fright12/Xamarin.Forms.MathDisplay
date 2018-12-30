@@ -39,8 +39,8 @@ namespace Crunch.GraphX
             if (Parent != null)
             {
                 int index = this.Index();
-                Text previous;
-                if (Parent.IndexOf(this) == 0 || (previous = Parent.ChildBefore(index) as Text) != null && (Machine.StringClassification.IsOperand(previous.Text.Trim()) || previous.Text.Trim() == "("))
+                object previous;
+                if (Parent.IndexOf(this) == 0 || (previous = Parent.ChildBefore(index)) != null && (Machine.StringClassification.IsOperand(previous.ToString().Trim()) || previous.ToString().Trim() == "("))
                 {
                     Text = "-";
                 }

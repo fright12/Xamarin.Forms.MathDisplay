@@ -10,7 +10,6 @@ namespace Crunch.GraphX
 {
     public static class SoftKeyboard
     {
-        //public static Expression Focus;
         public static CursorView Cursor { get; private set; }
 
         private static int index;
@@ -22,28 +21,21 @@ namespace Crunch.GraphX
 
         public static void Type(string str)
         {
-            /*Exponent previous;
-            if (0 == 1 && str[0] == '^' && index > 0 && (previous = Cursor.Parent.Children[index - 1] as Exponent) != null)
+            //Suround previous thing with parentheses if it's an exponent or a fraction
+            if (str[0] == '^' && index > 0 && ((Cursor.Parent.Children[index - 1] is Expression && (Cursor.Parent.Children[index - 1] as Expression).TextFormat == TextFormatting.Superscript) || Cursor.Parent.Children[index - 1] is Fraction))
             {
-                index = previous.Children.Count;
-                previous.Children.Add(Cursor);
-
-                if (str.Length > 1)
-                {
-                    Type(str.Substring(1));
-                }
-            }*/
-
-            if (str[0] == '^' && index > 0 && (Cursor.Parent.Children[index - 1] is Exponent || Cursor.Parent.Children[index - 1] is Fraction))
-            {
-                Cursor.Parent.Insert(Cursor.Parent.Children.BeginningOfPreviousMathObject(index++), new Text("("));
-                Cursor.Parent.Insert(index++, new Text(")"));
+                Cursor.Parent.Insert(Cursor.Parent.Children.BeginningOfPreviousMathObject(index++), Render.CreateLeftParenthesis());
+                Cursor.Parent.Insert(index++, Render.CreateRightParenthesis());
             }
-
+            
             View[] list;
-            if (str == "(" || str == ")")
+            if (str == "(")
             {
-                list = new View[] { new Text(str) };
+                list = new View[] { Render.CreateLeftParenthesis() };
+            }
+            else if (str == ")")
+            {
+                list = new View[] { Render.CreateRightParenthesis() };
             }
             else
             {
@@ -57,69 +49,54 @@ namespace Crunch.GraphX
                 index -= (list[0] as Fraction).Numerator.Children.Count;
             }
 
-            Cursor.Parent.InsertRange(index, list);
+            Cursor.Parent.Insert(index, list);
             index += list.Length;
 
-            if (list[list.Length - 1] is Fraction && (list[list.Length - 1] as Fraction).Denominator.Children.Count == 0)
+            if ((list.Last() as MathLayout)?.InputContinuation != null)
             {
-                (list[list.Length - 1] as Fraction).Denominator.Add(Cursor);
+                (list.Last() as MathLayout).InputContinuation.Add(Cursor);
                 index = 0;
             }
-            if (list[list.Length - 1] is Exponent && (list[list.Length - 1] as Exponent).Children.Count == 0)
-            {
-                (list[list.Length - 1] as Exponent).Add(Cursor);
-                index = 0;
-            }
-
+            
             Cursor.Parent.OnInputChanged();
         }
 
         public static bool Delete()
         {
+            print.log(index, Cursor.Parent.Children.Count);
+            foreach (View v in Cursor.Parent.Children)
+                print.log(v, v.GetType());
+            //Try to delete the container
             if (index == 0)
             {
-                int loc;
-                if (Cursor.Parent.Parent is null)
-                {
-                    return false;
-                }
-                else if (Cursor.Parent.Parent is Fraction)
-                {
-                    Fraction f = Cursor.Parent.Parent as Fraction;
-                    loc = f.Index() + 1;
-                    lyse(f.Denominator, f.Parent, loc);
-                    lyse(f.Numerator, f.Parent, loc);
-                }
-                else if (Cursor.Parent is Expression)
-                {
-                    loc = Cursor.Parent.Index() + 1;
-                    lyse(Cursor.Parent, Cursor.Parent.Parent, loc);
-                }
-                else
-                {
-                    return false;
-                }
+                Element parent = Cursor;
 
-                Cursor.Parent.RemoveAt(loc - 1);
+                do
+                {
+                    parent = parent.Parent;
+
+                    //Can't delete container
+                    if (parent == null)
+                    {
+                        return false;
+                    }
+                }
+                //Looking for a MathLayout that we can break up into an Expression
+                while (!(parent is MathLayout && parent.Parent is Expression && (parent.Parent as Expression).Editable));
+
+                (parent as MathLayout).Lyse();
                 index = Cursor.Index();
             }
+            //Otherwise just delete the thing before
             else
             {
                 index--;
                 Cursor.Parent.RemoveAt(index);
             }
-
+            
             Cursor.Parent.OnInputChanged();
 
             return true;
-        }
-
-        private static void lyse(Layout<View> target, Expression destination, int index)
-        {
-            for (int i = target.Children.Count - 1; i >= 0; i--)
-            {
-                destination.Insert(index, target.Children[i]);
-            }
         }
 
         public static void Right() => move(1);
@@ -144,7 +121,7 @@ namespace Crunch.GraphX
             {
                 int oldIndex = index;
                 var parent = checkIndex(direction, Cursor.Parent);
-
+                
                 if (parent != Cursor.Parent || index != oldIndex)
                 {
                     parent.Insert(index, Cursor);
@@ -152,55 +129,58 @@ namespace Crunch.GraphX
             }
         }
 
-        private static Expression checkIndex(int direction, Expression parent)
+        private static Expression checkIndex(int direction, Expression startingParent)
         {
-            //Stepping once in this direction will keep me in my current expression
-            if ((index + direction).IsBetween(0, parent.ChildCount()))
+            Layout<View> parent = startingParent;
+            int index = SoftKeyboard.index;
+
+            do
             {
-                //Step into a new parent
-                if (parent.ChildInDirection(index - (direction + 1) / 2, direction) is Expression)
+                //Get the next thing
+                View next = parent.ChildInDirection(index - (direction + 1) / 2, direction);
+                //If it's a layout, go into it
+                if (next is Layout<View> && !(next is Expression && !(next as Expression).Editable))
                 {
-                    parent = parent.ChildInDirection(index - (direction + 1) / 2, direction) as Expression;
-                    //I either want to be at the very beginning or the very end of the new expression,
-                    //depending on which direction I'm going
+                    parent = next as Layout<View>;
+                    //I either want to be at the very beginning or the very end of the new layout, depending on which direction I'm going
                     index = parent.ChildCount() * (direction - 1) / -2;
                 }
+                //Continue along this parent
                 else
                 {
                     index += direction;
                 }
-            }
-            //I'm stepping out of this parent
-            else
-            {
-                //Try to go up
-                if (parent.HasParent() && parent.Parent.Editable())
+
+                //If I stepped out of the current parent, try to go up
+                if (!index.IsBetween(0, parent.ChildCount()))
                 {
-                    index = parent.Index() + (direction + 1) / 2;
-                    parent = parent.Parent;
+                    //I can't go up because up isn't a layout or isn't editable - return to where I started
+                    if (!(parent.Parent is Layout<View>) || (parent.Parent is Expression && !(parent.Parent as Expression).Editable()))
+                    {
+                        index -= direction;
+                        return startingParent;
+                    }
+
+                    index = (parent.Parent as Layout<View>).IndexOf(parent) + (direction + 1) / 2;
+                    parent = parent.Parent as Layout<View>;
                 }
             }
+            while (!(parent is Expression));
 
-            //I'm somewhere I shouldn't be (like a fraction); keep going
-            if (parent.GetType() == typeof(Fraction))// || (parent.GetType() == typeof(Exponent) && index == parent.Children.Count))
-            {
-                //index -= (direction + 1) / 2;
-                parent = checkIndex(direction, parent);
-            }
-
-            return parent;
+            SoftKeyboard.index = index;
+            return parent as Expression;
         }
 
         public static void Trim(this Expression e)
         {
-            while (e.Children.Count > 0 && e.Children[e.Children.Count - 1] is Text && (e.Children[e.Children.Count - 1] as Text).Text == ")" && e.Children[0] is Text && (e.Children[0] as Text).Text == "(")
+            while (e.Children.Count > 0 && e.Children[e.Children.Count - 1].ToString().Trim() == ")" && e.Children[0].ToString().Trim() == "(")
             {
                 e.RemoveAt(e.Children.Count - 1);
                 e.RemoveAt(0);
             }
         }
 
-        public static void Fill(this Expression e, IList<View> input, int index) // where T : IMathList, new()
+        public static void Fill(this Expression e, IList<View> input, int index)
         {
             int count = index - input.BeginningOfPreviousMathObject(index);
             for (int i = 0; i <= count; i++)
@@ -209,61 +189,26 @@ namespace Crunch.GraphX
             }
         }
 
-        /*{
-            int imbalance = 0;
-            View view = default;
-
-            //Grab stuff until we hit an operand
-            while (index.IsBetween(0, input.Count - 1) && !(input[index] is Text && Machine.StringClassification.IsOperand((input[index] as Text).Text.Trim()) && (input[index] as Text).Text.Length > 1 && imbalance == 0))
-            {
-                view = input[index];
-
-                if (view is Text)
-                {
-                    string s = (view as Text).Text;
-                    if (s == "(" || s == ")")
-                    {
-                        if (s == "(")
-                        {
-                            if (imbalance == 0) break;
-                            imbalance++;
-                        }
-                        if (s == ")") imbalance--;
-                    }
-                }
-
-                input.RemoveAt(index);
-                e.Children.Insert(0, view);
-
-                index--;
-            }
-
-            //e.Trim();
-        }*/
-
-        public static int BeginningOfPreviousMathObject(this IList<View> input, int index) // where T : IMathList, new()
+        public static int BeginningOfPreviousMathObject(this IList<View> input, int index)
         {
             int imbalance = 0;
             View view = default;
 
-            Text current;
+            string current;
             //Grab stuff until we hit an operand
-            while (index.IsBetween(0, input.Count - 1) && !((current = input[index] as Text) != null && Machine.StringClassification.IsOperand(current.Text.Trim()) && current.Text != "-" && imbalance == 0))
+            while (index.IsBetween(0, input.Count - 1) && !(Machine.StringClassification.IsOperand(input[index].ToString().Trim()) && input[index].ToString() != "-" && imbalance == 0))
             {
                 view = input[index];
 
-                if (view is Text)
+                string s = view.ToString().Trim();
+                if (s == "(" || s == ")")
                 {
-                    string s = (view as Text).Text;
-                    if (s == "(" || s == ")")
+                    if (s == "(")
                     {
-                        if (s == "(")
-                        {
-                            if (imbalance == 0) break;
-                            imbalance++;
-                        }
-                        if (s == ")") imbalance--;
+                        if (imbalance == 0) break;
+                        imbalance++;
                     }
+                    if (s == ")") imbalance--;
                 }
 
                 index--;
@@ -272,7 +217,7 @@ namespace Crunch.GraphX
             return index + 1;
         }
 
-        public static View ChildInDirection(this Expression parent, int index, int direction)
+        public static View ChildInDirection(this Layout<View> parent, int index, int direction)
         {
             if ((index + direction).IsBetween(0, parent.Children.Count - 1))
             {
@@ -286,20 +231,20 @@ namespace Crunch.GraphX
             return null;
         }
 
-        public static View ChildBefore(this Expression parent, int index) => parent.ChildInDirection(index, -1);
+        public static View ChildBefore(this Layout<View> parent, int index) => parent.ChildInDirection(index, -1);
 
-        public static View ChildAfter(this Expression parent, int index) => parent.ChildInDirection(index, 1);
+        public static View ChildAfter(this Layout<View> parent, int index) => parent.ChildInDirection(index, 1);
 
-        public static bool HideCursor(this Expression parent, int index) => Cursor.Parent == parent && index >= SoftKeyboard.index;
+        public static bool HideCursor(this Layout<View> parent, int index) => Cursor.Parent == parent && index >= SoftKeyboard.index;
 
-        public static bool HideCursor(this Expression parent) => Cursor.Parent == parent;
+        public static bool HideCursor(this Layout<View> parent) => Cursor.Parent == parent;
 
-        public static int ChildCount(this Expression e) => e.Children.Count - e.HideCursor().ToInt();
+        public static int ChildCount(this Layout<View> layout) => layout.Children.Count - layout.HideCursor().ToInt();
 
-        public static int IndexOf(this Expression e, View child)
+        public static int IndexOf(this Layout<View> layout, View child)
         {
-            int index = e.Children.IndexOf(child);
-            return index - e.HideCursor(index).ToInt();
+            int index = layout.Children.IndexOf(child);
+            return index - layout.HideCursor(index).ToInt();
         }
 
         public static bool Editable(this Layout<View> layout) => layout is Expression && (layout as Expression).Editable;

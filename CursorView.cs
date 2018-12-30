@@ -11,6 +11,14 @@ namespace Crunch.GraphX
     public class CursorView : BoxView, IMathView
     {
         public new Expression Parent => base.Parent as Expression;
+        public double Middle => 0.5;
+        public double FontSize
+        {
+            set
+            {
+                HeightRequest = Text.MaxTextHeight * value / Text.MaxFontSize;
+            }
+        }
 
         public CursorView()
         {
@@ -18,8 +26,9 @@ namespace Crunch.GraphX
             VerticalOptions = LayoutOptions.Center;
         }
 
-        public void Format(double maxFontSize) => HeightRequest = Text.MaxTextHeight * maxFontSize / Text.MaxFontSize;
+        //public void Format(double maxFontSize) => HeightRequest = Text.MaxTextHeight * maxFontSize / Text.MaxFontSize;
 
+        public string ToLatex() => "";
         public override string ToString() => "";
     }
 }

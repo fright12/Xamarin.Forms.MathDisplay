@@ -10,136 +10,141 @@ namespace Crunch.GraphX
 {
     public delegate void HeightChangedEventHandler(Expression e);
     public delegate void InputChangedEventHandler();
+    public delegate void ChildrenChangedEventHandler(object sender, ElementEventArgs e, bool added);
+    public delegate void DeletedEventHandler();
 
-    public class Expression : TouchableStackLayout
+    public class Range
+    {
+        public double Upper { get; private set; }
+        public double Lower { get; private set; }
+        public double Size => Upper - Lower;
+
+        public Range(double upper, double lower)
+        {
+            Upper = upper;
+            Lower = lower;
+        }
+
+        public static Range Max(Range r1, Range r2) => new Range(Math.Max(r1.Upper, r2.Upper), Math.Min(r1.Lower, r2.Lower));
+    }
+
+    public enum TextFormatting { None = 0, Superscript = 94, Subscript = 95 }
+
+    public class Expression : MathLayout
     {
         public event HeightChangedEventHandler HeightChanged;
         public event InputChangedEventHandler InputChanged;
-
-        public bool Editable = false;
+        public event ChildrenChangedEventHandler ChildrenChanged;
 
         public new Expression Parent => base.Parent as Expression;
+        public TextFormatting TextFormat { get; private set; }
+        public bool Editable = false;
 
-        public double FontSize = Text.MaxFontSize;
-        public static readonly float fontSizeDecrease = 4f / 5f;
-
-        public double lastHeight = -1;
-
-        public Expression()
+        public override double FontSize
         {
-            //BackgroundColor = Color.SeaGreen;
-            //Padding = new Thickness(10, 10, 10, 10);
+            set
+            {
+                base.FontSize = value * (TextFormat != TextFormatting.None ? Text.FontSizeDecrease : 1);
+            }
+        }
+
+        public override double Middle
+        {
+            get
+            {
+                if (TextFormat == TextFormatting.Superscript)
+                {
+                    return 1 + (1 - Text.FontSizeDecrease) / 2;
+                }
+                else if (TextFormat == TextFormatting.Subscript)
+                {
+                    return -(1 - Text.FontSizeDecrease) / 2;
+                }
+                else
+                {
+                    return Midline;
+                }
+            }
+        }
+        public override Expression InputContinuation => TextFormat != TextFormatting.Subscript && Children.Count == 0 ? this : null;
+        public override double MinimumHeight => Math.Ceiling(Text.MaxTextHeight * FontSize / Text.MaxFontSize);
+
+        public Expression(TextFormatting format = TextFormatting.None)
+        {
+            //BackgroundColor = Color.LightGreen;
             Orientation = StackOrientation.Horizontal;
             HorizontalOptions = LayoutOptions.Center;
             VerticalOptions = LayoutOptions.Center;
-            HeightRequest = Text.MaxTextHeight;
             Spacing = 0;
+            
+            TextFormat = format;
 
-            ChildAdded += delegate { CheckPadding(); };
-            ChildRemoved += delegate { CheckPadding(); };
-            CheckPadding();
+            ChildAdded += (sender, e) => ChildrenChanged?.Invoke(sender, e, true);
+            ChildRemoved += (sender, e) => ChildrenChanged?.Invoke(sender, e, false);
+            //ChildrenChanged += delegate { CheckPadding(); };
+            
+            //CheckPadding();
         }
 
-        public Expression(params View[] children) : this() => AddRange(children);
+        public Expression(params View[] children) : this() => Add(children);
+        public Expression(TextFormatting format, params View[] children) : this(format) => Add(children);
+
+        public override void Lyse() => Lyse(this);
+
+        public void Add(params View[] children) => Insert(Children.Count, children);
+
+        //public void Insert<T>(int index, params T[] children) where T : View, IMathView
+        public void Insert(int index, params View[] children)
+        {
+            for (int i = 0; i < children.Length; i++)
+            {
+                (children[i].Parent as Expression)?.Children.Remove(children[i]);
+                Children.Insert(index + i, children[i]);
+                
+                if (children[i] is IMathView)
+                {
+                    (children[i] as IMathView).FontSize = FontSize;
+                }
+
+                if (children[i] is Layout<View>)
+                {
+                    PropogateProperty(children[i] as Layout<View>, Editable, (e, v) => e.Editable = e.Editable || v);
+                }
+            }
+        }
+
+        public void RemoveAt(int index) => Children.RemoveAt(index);
 
         internal void OnInputChanged() => InputChanged?.Invoke();
 
-        public void AddRange(params View[] list)
+        private void PropogateProperty<T>(Layout<View> parent, T value, Action<Expression, T> setter)
         {
-            InsertRange(Children.Count, list);
-            //Trim();
-        }
-
-        public void InsertRange(int index, params View[] list)
-        {
-            //int removeParends = (list.Length > 0 && (list[0] as Text)?.Text == "(" && (list[list.Length - 1] as Text)?.Text == ")").ToInt();
-
-            for (int i = 0; i < list.Length; i++)
+            if (parent is Expression)
             {
-                Children.Insert(index + i, list[i]);
-            }
-        }
-
-        public void RemoveAt(int index)
-        {
-            Children.RemoveAt(index);
-        }
-
-        public void Add(View view) => Insert(Children.Count, view);
-
-        public void Insert(int index, View view)
-        {
-            (view.Parent as Expression)?.Children.Remove(view);
-            Children.Insert(index, view);
-        }
-
-        private static readonly int extraSpaceForCursor = 3;
-        private static readonly int nestedFractionPadding = 10;
-
-        public void CheckPadding()
-        {
-            if (true)//e.Editable)
-            {
-                bool empty = Children.Count == 0;
-
-                bool left = Orientation == StackOrientation.Horizontal && (empty || Children[0] is Fraction);
-                bool right = Orientation == StackOrientation.Horizontal && (empty || Children.Last() is Expression);
-                bool isOnlyChildFraction = Parent is Fraction && ((this.ChildCount() == 1 && this.ChildAfter(-1) is Fraction) || this.ChildCount() == 0);
-
-                Padding = new Thickness(
-                    Math.Min(nestedFractionPadding, left.ToInt() * extraSpaceForCursor + isOnlyChildFraction.ToInt() * nestedFractionPadding),
-                    Padding.Top,
-                    Math.Min(nestedFractionPadding, right.ToInt() * extraSpaceForCursor + isOnlyChildFraction.ToInt() * nestedFractionPadding),
-                    Padding.Bottom);
-            }
-        }
-
-        protected override void OnRemoved(View view)
-        {
-            base.OnRemoved(view);
-
-            if (Children.Count == 0)
-            {
-                HeightRequest = Text.MaxTextHeight;
-            }
-        }
-
-        protected virtual double determineFontSize() => Parent.FontSize;
-
-        protected override void OnAdded(View view)
-        {
-            base.OnAdded(view);
-
-            if (Children.Count == 1)
-            {
-                HeightRequest = -1;
+                setter(parent as Expression, value);
             }
 
-            //print.log("child added", view);
-            //print.log("view is selectable: " + Selectable, FontSize);//, this == MainPage.focus, MainPage.focus.Selectable);
-            //view.SetSelectable(Selectable);
-
-            if (view is Text)
+            foreach(View v in parent.Children)
             {
-                (view as Text).FontSize = FontSize;
-            }
-            else if (view is Expression)
-            {
-                Expression e = view as Expression;
-                e.FontSize = e.Parent != null ? e.determineFontSize() : Text.MaxFontSize;
-                e.Editable = Editable || e.Editable;
-                foreach (View v in e.Children)
+                if (v is Layout<View>)
                 {
-                    e.OnAdded(v);
+                    PropogateProperty(v as Layout<View>, value, setter);
                 }
             }
-            else if (view == SoftKeyboard.Cursor)
-            {
-                SoftKeyboard.Cursor.HeightRequest = Text.MaxTextHeight * FontSize / Text.MaxFontSize;
-            }
-
-            //CheckPadding();
         }
+
+        public static readonly int extraSpaceForCursor = 3;
+        private int leftSpaceForCursor => (Editable && (Children.Count == 0 || Children[0] is Layout<View>)).ToInt() * extraSpaceForCursor;
+        private int rightSpaceForCursor => (Editable && (Children.Count == 0 || Children.Last() is Layout<View>)).ToInt() * extraSpaceForCursor;
+
+        protected override SizeRequest OnMeasure(double widthConstraint, double heightConstraint)
+        {
+            PadLeft = leftSpaceForCursor;
+            PadRight = rightSpaceForCursor;
+            return base.OnMeasure(widthConstraint, heightConstraint);
+        }
+
+        private double lastHeight = -1;
 
         protected override void OnSizeAllocated(double width, double height)
         {
@@ -152,7 +157,9 @@ namespace Crunch.GraphX
             }
         }
 
-        public virtual string ToLatex()
+        private string TextFormatString => (char)TextFormat == '\0' ? "" : ((char)TextFormat).ToString();
+
+        public override string ToLatex()
         {
             string s = "";
             foreach (View v in Children)
@@ -166,7 +173,7 @@ namespace Crunch.GraphX
                     s += Machine.StringClassification.Simple(v.ToString()).Trim();
                 }
             }
-            return s;
+            return TextFormatString + "{" + s + "}";
         }
 
         public override string ToString()
@@ -176,7 +183,13 @@ namespace Crunch.GraphX
             {
                 s += Machine.StringClassification.Simple(v.ToString()).Trim();
             }
-            return "(" + s + ")";
+            
+            if (s == "")
+            {
+                return "";
+            }
+
+            return TextFormatString + "(" + s + ")";
         }
     }
 }
