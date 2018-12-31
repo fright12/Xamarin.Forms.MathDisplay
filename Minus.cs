@@ -2,10 +2,9 @@
 using System.Collections.Generic;
 using System.Text;
 
-using Xamarin.Forms;
 using Xamarin.Forms.Extensions;
 
-namespace Crunch.GraphX
+namespace Xamarin.Forms.MathDisplay
 {
     public class Minus : Text
     {
@@ -40,7 +39,7 @@ namespace Crunch.GraphX
             {
                 int index = this.Index();
                 object previous;
-                if (Parent.IndexOf(this) == 0 || (previous = Parent.ChildBefore(index)) != null && (Machine.StringClassification.IsOperand(previous.ToString().Trim()) || previous.ToString().Trim() == "("))
+                if (Parent.IndexOf(this) == 0 || (previous = Parent.ChildBefore(index)) != null && (Crunch.Machine.StringClassification.IsOperand(previous.ToString().Trim()) || previous.ToString().Trim() == "("))
                 {
                     Text = "-";
                 }

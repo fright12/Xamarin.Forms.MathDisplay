@@ -3,10 +3,9 @@ using System.Collections.Generic;
 using System.Text;
 
 using System.Extensions;
-using Xamarin.Forms;
 using Xamarin.Forms.Extensions;
 
-namespace Crunch.GraphX
+namespace Xamarin.Forms.MathDisplay
 {
     public static class SoftKeyboard
     {
@@ -39,7 +38,7 @@ namespace Crunch.GraphX
             }
             else
             {
-                list = Render.Math(Machine.StringClassification.Simple(str));
+                list = Render.Math(Crunch.Machine.StringClassification.Simple(str));
             }
 
             if (list[0] is Fraction && (list[0] as Fraction).Numerator.Children.Count == 0)
@@ -196,7 +195,7 @@ namespace Crunch.GraphX
 
             string current;
             //Grab stuff until we hit an operand
-            while (index.IsBetween(0, input.Count - 1) && !(Machine.StringClassification.IsOperand(input[index].ToString().Trim()) && input[index].ToString() != "-" && imbalance == 0))
+            while (index.IsBetween(0, input.Count - 1) && !(Crunch.Machine.StringClassification.IsOperand(input[index].ToString().Trim()) && input[index].ToString() != "-" && imbalance == 0))
             {
                 view = input[index];
 

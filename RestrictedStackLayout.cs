@@ -4,10 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-using Xamarin.Forms;
 using Xamarin.Forms.Extensions;
 
-namespace Crunch.GraphX
+namespace Xamarin.Forms.MathDisplay
 {
     public abstract class ImmutableStackLayout
     {

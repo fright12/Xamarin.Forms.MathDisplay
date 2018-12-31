@@ -8,8 +8,8 @@
     <ProjectGuid>{6D33DD01-7D24-425F-AF85-B998AA502195}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Crunch.GraphX</RootNamespace>
-    <AssemblyName>Crunch.GraphX</AssemblyName>
+    <RootNamespace>Xamarin.Forms.MathDisplay</RootNamespace>
+    <AssemblyName>Xamarin.Forms.MathDisplay</AssemblyName>
     <TargetFrameworkVersion>v4.7.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <NuGetPackageImportStamp>

@@ -3,11 +3,9 @@ using System.Collections.Generic;
 using System.Text;
 
 using System.Extensions;
-
-using Xamarin.Forms;
 using Xamarin.Forms.Extensions;
 
-namespace Crunch.GraphX
+namespace Xamarin.Forms.MathDisplay
 {
     public class Fraction : MathLayout
     {

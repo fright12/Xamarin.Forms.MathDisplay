@@ -3,10 +3,9 @@ using System.Collections.Generic;
 using System.Text;
 
 using System.Extensions;
-using Xamarin.Forms;
 using Crunch.Machine;
 
-namespace Crunch.GraphX
+namespace Xamarin.Forms.MathDisplay
 {
     public static class Render
     {

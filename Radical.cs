@@ -4,10 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-using Xamarin.Forms;
 using Xamarin.Forms.Extensions;
 
-namespace Crunch.GraphX
+namespace Xamarin.Forms.MathDisplay
 {
     public class Radical : MathLayout
     {
@@ -86,9 +85,9 @@ namespace Crunch.GraphX
 
         protected override SizeRequest OnMeasure(double widthConstraint, double heightConstraint)
         {
-            PadLeft = Math.Max(0, RadicalWidth * 0.5 - Root.Measure().Width);
+            PadLeft = System.Math.Max(0, RadicalWidth * 0.5 - Root.Measure().Width);
             Size size = base.OnMeasure(widthConstraint, heightConstraint).Request;
-            return new SizeRequest(new Size(Math.Max(size.Width, Operand.Measure().Width + RadicalWidth), size.Height));
+            return new SizeRequest(new Size(System.Math.Max(size.Width, Operand.Measure().Width + RadicalWidth), size.Height));
         }
 
         public override string ToLatex() => Operand.ToLatex();

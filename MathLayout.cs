@@ -5,10 +5,9 @@ using System.Text;
 using System.Threading.Tasks;
 
 using System.Extensions;
-using Xamarin.Forms;
 using Xamarin.Forms.Extensions;
 
-namespace Crunch.GraphX
+namespace Xamarin.Forms.MathDisplay
 {
     public abstract class MathLayout : TouchableStackLayout, IMathView
     {
@@ -108,8 +107,8 @@ namespace Crunch.GraphX
                     double height = (v is Expression) && (v as Expression).Children.Count == 0 ? 0 : v.Measure().Height;
                     double above = GetMidline(Children[i]) * height;
 
-                    aboveMidline = Math.Max(aboveMidline, above);
-                    belowMidline = Math.Max(belowMidline, height - above);
+                    aboveMidline = System.Math.Max(aboveMidline, above);
+                    belowMidline = System.Math.Max(belowMidline, height - above);
                 }
             }
 
@@ -117,7 +116,7 @@ namespace Crunch.GraphX
             {
                 Midline = aboveMidline / (belowMidline + aboveMidline);
             }
-            request = new SizeRequest(new Size(PadLeft + request.Request.Width + PadRight, Math.Max(MinimumHeight, aboveMidline + belowMidline)));
+            request = new SizeRequest(new Size(PadLeft + request.Request.Width + PadRight, System.Math.Max(MinimumHeight, aboveMidline + belowMidline)));
 
             LayoutDataCache.Add(size, new Tuple<SizeRequest, double>(request, Midline));
             return request;

@@ -3,10 +3,9 @@ using System.Collections.Generic;
 using System.Text;
 
 using System.Extensions;
-using Xamarin.Forms;
 using Xamarin.Forms.Extensions;
 
-namespace Crunch.GraphX
+namespace Xamarin.Forms.MathDisplay
 {
     public delegate void HeightChangedEventHandler(Expression e);
     public delegate void InputChangedEventHandler();
@@ -25,7 +24,7 @@ namespace Crunch.GraphX
             Lower = lower;
         }
 
-        public static Range Max(Range r1, Range r2) => new Range(Math.Max(r1.Upper, r2.Upper), Math.Min(r1.Lower, r2.Lower));
+        public static Range Max(Range r1, Range r2) => new Range(System.Math.Max(r1.Upper, r2.Upper), System.Math.Min(r1.Lower, r2.Lower));
     }
 
     public enum TextFormatting { None = 0, Superscript = 94, Subscript = 95 }
@@ -67,7 +66,7 @@ namespace Crunch.GraphX
             }
         }
         public override Expression InputContinuation => TextFormat != TextFormatting.Subscript && Children.Count == 0 ? this : null;
-        public override double MinimumHeight => Math.Ceiling(Text.MaxTextHeight * FontSize / Text.MaxFontSize);
+        public override double MinimumHeight => System.Math.Ceiling(Text.MaxTextHeight * FontSize / Text.MaxFontSize);
 
         public Expression(TextFormatting format = TextFormatting.None)
         {
@@ -170,7 +169,7 @@ namespace Crunch.GraphX
                 }
                 else
                 {
-                    s += Machine.StringClassification.Simple(v.ToString()).Trim();
+                    s += Crunch.Machine.StringClassification.Simple(v.ToString()).Trim();
                 }
             }
             return TextFormatString + "{" + s + "}";
@@ -181,7 +180,7 @@ namespace Crunch.GraphX
             string s = "";
             foreach (View v in Children)
             {
-                s += Machine.StringClassification.Simple(v.ToString()).Trim();
+                s += Crunch.Machine.StringClassification.Simple(v.ToString()).Trim();
             }
             
             if (s == "")

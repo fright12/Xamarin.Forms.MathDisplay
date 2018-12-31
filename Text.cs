@@ -2,10 +2,9 @@
 using System.Collections.Generic;
 using System.Text;
 
-using Xamarin.Forms;
 using Xamarin.Forms.Extensions;
 
-namespace Crunch.GraphX
+namespace Xamarin.Forms.MathDisplay
 {
     public class Text : TouchableLabel, IMathView
     {
@@ -30,6 +29,6 @@ namespace Crunch.GraphX
         //public void Format(double maxFontSize) => FontSize = maxFontSize;
 
         public string ToLatex() => ToString();
-        public override string ToString() => Machine.StringClassification.Simple(Text);
+        public override string ToString() => Crunch.Machine.StringClassification.Simple(Text);
     }
 }
