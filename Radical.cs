@@ -24,8 +24,7 @@ namespace Xamarin.Forms.MathDisplay
                 Operand.FontSize = value;
                 Root.FontSize = value * Text.FontSizeDecrease;
 
-                RadicalSign.WidthRequest = RadicalWidth;
-                //Root.MinimumWidth = RadicalWidth * 0.5;
+                RadicalSign.WidthRequest = Math.Floor(RadicalWidth);
                 AbsoluteLayout.SetLayoutBounds(RadicalSign.Parent, new Rectangle(0, 0, RadicalWidth * 0.5, 1));
             }
         }
@@ -52,26 +51,49 @@ namespace Xamarin.Forms.MathDisplay
             //******* _______ *******
             //*******         *******
             //*******         *******
-            StackLayout BarOperand = new StackLayout() { Orientation = StackOrientation.Vertical, VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center, Spacing = 0 };
-            BarOperand.Children.Add(new BoxView() { HeightRequest = 3, WidthRequest = 0, BackgroundColor = Color.Gray });
+            StackLayout BarOperand = new StackLayout()
+            {
+                Orientation = StackOrientation.Vertical,
+                VerticalOptions = LayoutOptions.Center,
+                HorizontalOptions = LayoutOptions.Center,
+                Spacing = 0
+            };
+            BarOperand.Children.Add(new BoxView()
+            {
+                HeightRequest = 3,
+                WidthRequest = 0,
+                BackgroundColor = Color.Gray
+            });
             BarOperand.Children.Add(Operand = new Expression(children));
 
             //*******       / *******
             //*******  __  /  *******
             //*******    \/   *******
-            RadicalSign = Render.CreateRadical();
+            RadicalSign = Text.CreateRadical();
             MaxRadicalWidth = RadicalSign.Measure().Width;
 
-            AbsoluteLayout RadicalContainer = new AbsoluteLayout() { VerticalOptions = LayoutOptions.FillAndExpand };
+            AbsoluteLayout RadicalContainer = new AbsoluteLayout()
+            {
+                VerticalOptions = LayoutOptions.FillAndExpand
+            };
             RadicalContainer.Children.Add(RadicalSign, new Rectangle(1, 0, AbsoluteLayout.AutoSize, 1), AbsoluteLayoutFlags.PositionProportional | AbsoluteLayoutFlags.HeightProportional);
-            AbsoluteLayout ShiftedRadicalContainer = new AbsoluteLayout { VerticalOptions = LayoutOptions.FillAndExpand };
+            AbsoluteLayout ShiftedRadicalContainer = new AbsoluteLayout
+            {
+                VerticalOptions = LayoutOptions.FillAndExpand
+            };
             ShiftedRadicalContainer.Children.Add(RadicalContainer, new Rectangle(), AbsoluteLayoutFlags.HeightProportional);
 
             //*******        _______ *******
             //*******       /        *******
             //*******  __  /         *******
             //*******    \/          *******
-            StackLayout RadicalBarOperand = new StackLayout() { Orientation = StackOrientation.Horizontal, VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center, Spacing = 0 };
+            StackLayout RadicalBarOperand = new StackLayout()
+            {
+                Orientation = StackOrientation.Horizontal,
+                VerticalOptions = LayoutOptions.Center,
+                HorizontalOptions = LayoutOptions.Center,
+                Spacing = 0
+            };
             RadicalBarOperand.Children.Add(ShiftedRadicalContainer);
             RadicalBarOperand.Children.Add(BarOperand);
 
@@ -85,9 +107,9 @@ namespace Xamarin.Forms.MathDisplay
 
         protected override SizeRequest OnMeasure(double widthConstraint, double heightConstraint)
         {
-            PadLeft = System.Math.Max(0, RadicalWidth * 0.5 - Root.Measure().Width);
+            PadLeft = Math.Max(0, RadicalWidth * 0.5 - Root.Measure().Width);
             Size size = base.OnMeasure(widthConstraint, heightConstraint).Request;
-            return new SizeRequest(new Size(System.Math.Max(size.Width, Operand.Measure().Width + RadicalWidth), size.Height));
+            return new SizeRequest(new Size(Math.Max(size.Width, Operand.Measure().Width + RadicalWidth), size.Height));
         }
 
         public override string ToLatex() => Operand.ToLatex();

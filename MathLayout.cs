@@ -54,6 +54,7 @@ namespace Xamarin.Forms.MathDisplay
         public abstract double Middle { get; }
         public virtual Expression InputContinuation => null;
         public abstract double MinimumHeight { get; }
+        public int MathViewCount { get; private set; }
 
         protected double Midline = 0.5;
 
@@ -155,10 +156,16 @@ namespace Xamarin.Forms.MathDisplay
                 }
             };
 
+            MathViewCount = 0;
             open();
 
             for (int i = 0; i < Children.Count; i++)
             {
+                if (Children[i] is IMathView)
+                {
+                    MathViewCount++;
+                }
+
                 if (!Children[i].IsVisible)
                 {
                     continue;

@@ -103,6 +103,31 @@
             <returns>To be added.</returns>
             <remarks>To be added.</remarks>
         </member>
+        <member name="T:Xamarin.Forms.Xaml.DataTemplateExtension">
+            <summary>To be added.</summary>
+            <remarks>To be added.</remarks>
+        </member>
+        <member name="C:Xamarin.Forms.Xaml.DataTemplateExtension">
+            <summary>To be added.</summary>
+            <remarks>To be added.</remarks>
+        </member>
+        <member name="M:Xamarin.Forms.Xaml.DataTemplateExtension.ProvideValue(System.IServiceProvider)">
+            <param name="serviceProvider">To be added.</param>
+            <summary>To be added.</summary>
+            <returns>To be added.</returns>
+            <remarks>To be added.</remarks>
+        </member>
+        <member name="P:Xamarin.Forms.Xaml.DataTemplateExtension.TypeName">
+            <summary>To be added.</summary>
+            <value>To be added.</value>
+            <remarks>To be added.</remarks>
+        </member>
+        <member name="M:Xamarin.Forms.Xaml.DataTemplateExtension.Xamarin#Forms#Xaml#IMarkupExtension#ProvideValue(System.IServiceProvider)">
+            <param name="serviceProvider">To be added.</param>
+            <summary>To be added.</summary>
+            <returns>To be added.</returns>
+            <remarks>To be added.</remarks>
+        </member>
         <member name="T:Xamarin.Forms.Xaml.DynamicResourceExtension">
             <summary>For internal use by the XAML infrastructure.</summary>
             <remarks>To be added.</remarks>
@@ -493,6 +518,13 @@
             <param name="objectAndParents">For internal use by the Xamarin.Forms platform.</param>
             <param name="targetProperty">For internal use by the Xamarin.Forms platform.</param>
             <summary>For internal use by the Xamarin.Forms platform.</summary>
+            <remarks>To be added.</remarks>
+        </member>
+        <member name="C:Xamarin.Forms.Xaml.Internals.SimpleValueTargetProvider(System.Object[],System.Object,Xamarin.Forms.Internals.INameScope)">
+            <param name="objectAndParents">To be added.</param>
+            <param name="targetProperty">To be added.</param>
+            <param name="scope">To be added.</param>
+            <summary>To be added.</summary>
             <remarks>To be added.</remarks>
         </member>
         <member name="M:Xamarin.Forms.Xaml.Internals.SimpleValueTargetProvider.FindByName(System.String)">

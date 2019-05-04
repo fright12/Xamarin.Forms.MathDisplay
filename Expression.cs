@@ -24,7 +24,7 @@ namespace Xamarin.Forms.MathDisplay
             Lower = lower;
         }
 
-        public static Range Max(Range r1, Range r2) => new Range(System.Math.Max(r1.Upper, r2.Upper), System.Math.Min(r1.Lower, r2.Lower));
+        public static Range Max(Range r1, Range r2) => new Range(Math.Max(r1.Upper, r2.Upper), Math.Min(r1.Lower, r2.Lower));
     }
 
     public enum TextFormatting { None = 0, Superscript = 94, Subscript = 95 }
@@ -114,7 +114,11 @@ namespace Xamarin.Forms.MathDisplay
 
         public void RemoveAt(int index) => Children.RemoveAt(index);
 
-        internal void OnInputChanged() => InputChanged?.Invoke();
+        internal void OnInputChanged()
+        {
+            InputChanged?.Invoke();
+            Xamarin.Forms.Extensions.ExtensionMethods.Parent<Expression>(this)?.OnInputChanged();
+        }
 
         private void PropogateProperty<T>(Layout<View> parent, T value, Action<Expression, T> setter)
         {

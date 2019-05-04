@@ -6,8 +6,12 @@ using Xamarin.Forms.Extensions;
 
 namespace Xamarin.Forms.MathDisplay
 {
-    public class Text : TouchableLabel, IMathView
+    public class Text : Label, IMathView
     {
+        public static Func<View> CreateLeftParenthesis = () => new Text("(") { VerticalTextAlignment = TextAlignment.Center };
+        public static Func<View> CreateRightParenthesis = () => new Text(")") { VerticalTextAlignment = TextAlignment.Center };
+        public static Func<View> CreateRadical = () => new Text("sqrt(") { VerticalTextAlignment = TextAlignment.Center };
+
         public static int MaxFontSize = 33;
         public static double MaxTextHeight;
         public static readonly double FontSizeDecrease = 0.8;

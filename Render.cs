@@ -7,63 +7,84 @@ using Crunch.Machine;
 
 namespace Xamarin.Forms.MathDisplay
 {
-    public static class Render
+    public class Reader : Crunch.Machine.Reader
     {
-        public static Func<View> CreateLeftParenthesis = () => new Text("(") { VerticalTextAlignment = TextAlignment.Center };
-        public static Func<View> CreateRightParenthesis = () => new Text(")") { VerticalTextAlignment = TextAlignment.Center };
-        public static Func<View> CreateRadical = () => new Text("sqrt(") { VerticalTextAlignment = TextAlignment.Center };
-
-        private static OrderedTrie<Operator> operations;
-
-        static Render()
+        private static Func<LinkedListNode<object>, LinkedListNode<object>> NextOperand = (node) =>
         {
-            operations = new OrderedTrie<Operator>(
+            if (node.Next != null && node.Next.Value.ToString() == "-")
+            {
+                //Delete the negative sign
+                /*node.Next.Value = null;
+                node.Next = node.Next.Next;
+                node.Next.Previous = node;*/
+                node.List.Remove(node.Next);
+
+                //Negate what's after
+                node.Next.Value = new LinkedList<object>().Populate("-", node.Next.Value);
+            }
+
+            return node.Next;
+        };
+
+        public Reader(params KeyValuePair<string, Operator>[][] data) : base(data) { }
+        private static Reader Instance;
+
+        static Reader()
+        {
+            Instance = new Reader(
                 new KeyValuePair<string, Operator>[2]
                 {
-                    new KeyValuePair<string, Operator>("sqrt", new UnaryOperator((o) => new Radical(o.Wrap(false)))),
-                    new KeyValuePair<string, Operator>("_", new UnaryOperator((o) => new Expression(TextFormatting.Subscript, o.Wrap(false))))
+                    new KeyValuePair<string, Operator>("sqrt", UnaryOperator((o) => new Radical(Wrap(o, false)))),
+                    new KeyValuePair<string, Operator>("_", UnaryOperator((o) => new Expression(TextFormatting.Subscript, Wrap(o, false))))
                 },
                 new KeyValuePair<string, Operator>[2]
                 {
-                    new KeyValuePair<string, Operator>("^", new BinaryOperator(exponents)),
-                    new KeyValuePair<string, Operator>("log", new Operator((o) => new Quantity(new Text("log"), o[0], o[1]), Node<object>.NextNode, (n) => n.Next?.Next))
+                    new KeyValuePair<string, Operator>("^", BinaryOperator(exponents)),
+                    new KeyValuePair<string, Operator>("log", new Operator((o) => new LinkedList<object>().Populate(new Text("log"), o[0], o[1]), NextOperand, (n) => n.Next == null ? null : NextOperand(n.Next)))
                 },
                 new KeyValuePair<string, Operator>[1]
                 {
-                    new KeyValuePair<string, Operator>("/", new BinaryOperator((o1, o2) => new Fraction(new Expression(o1.Wrap(false)), new Expression(o2.Wrap(false)))))
+                    new KeyValuePair<string, Operator>("/", BinaryOperator((o1, o2) => new Fraction(new Expression(Wrap(o1, false)), new Expression(Wrap(o2, false)))))
                 }
-                );
+            );
         }
+
+        private static Operator UnaryOperator(Func<object, object> f) => new UnaryOperator((o) => f(o), NextOperand);
+        private static Operator BinaryOperator(Func<object, object, object> f) => new BinaryOperator((o1, o2) => f(o1, o2), (node) => node.Previous, NextOperand);
 
         private static object exponents(object o1, object o2)
         {
-            View[] exponent = o2.Wrap(false);
+            View[] exponent = Wrap(o2, false);
             
             if (exponent.Length == 1 && exponent[0] is Fraction)
             {
                 Fraction f = exponent[0] as Fraction;
                 if (f.Numerator.ToString() == "(1)")
                 {
-                    return new Radical(new Expression(Math(f.Denominator.ToString())), o1.Wrap(false));
+                    return new Radical(new Expression(Render(f.Denominator.ToString())), Wrap(o1, false));
                 }
             }
 
-            return new Quantity(o1, new Expression(TextFormatting.Superscript, exponent));
+            return new LinkedList<object>().Populate(o1, new Expression(TextFormatting.Superscript, exponent));
         }
 
-        public static View[] Math(string str)
+        public static View[] Render(string str)
         {
-            Func<object, object> negate = (o) => new Quantity("-", o);
-
             print.log("rendering " + str);
-            return Parse.Math(str, operations, negate).Wrap(false);
+            return Wrap(Instance.Parse(str), false);
         }
 
-        private static View[] Wrap(this object o, bool parend = true)
+        /*public View[] Math(string str)
         {
-            while (o is Quantity && (o as Quantity).First == (o as Quantity).Last && (o as Quantity).First.Value is Quantity)
+            print.log("rendering " + str);
+            return Wrap(Parse(str), false);
+        }*/
+
+        private static View[] Wrap(object o, bool parend = true)
+        {
+            while (o is LinkedList<object> && (o as LinkedList<object>).First == (o as LinkedList<object>).Last && (o as LinkedList<object>).First.Value is LinkedList<object>)
             {
-                o = (o as Quantity).First.Value;
+                o = (o as LinkedList<object>).First.Value;
             }
 
             View view = null;
@@ -71,18 +92,18 @@ namespace Xamarin.Forms.MathDisplay
             {
                 return new View[0];
             }
-            else if (o is Quantity)
+            else if (o is LinkedList<object>)
             {
                 List<View> list = new List<View>();
-                if ((o as Quantity).Last.Value is Expression && ((o as Quantity).Last.Value as Expression).TextFormat == TextFormatting.Superscript)
+                if ((o as LinkedList<object>).Last.Value is Expression && ((o as LinkedList<object>).Last.Value as Expression).TextFormat == TextFormatting.Superscript)
                 {
                     parend = false;
                 }
 
-                Node<object> node = (o as Quantity).First;
+                LinkedListNode<object> node = (o as LinkedList<object>).First;
                 while (node != null)
                 {
-                    foreach (View v in node.Value.Wrap())
+                    foreach (View v in Wrap(node.Value))
                     {
                         list.Add(v);
                     }
@@ -91,8 +112,8 @@ namespace Xamarin.Forms.MathDisplay
 
                 if (parend)
                 {
-                    list.Insert(0, CreateLeftParenthesis());
-                    list.Add(CreateRightParenthesis());
+                    list.Insert(0, Text.CreateLeftParenthesis());
+                    list.Add(Text.CreateRightParenthesis());
                 }
 
                 return list.ToArray();
