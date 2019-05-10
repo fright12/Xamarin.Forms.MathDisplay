@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Text;
 
@@ -12,16 +13,43 @@ namespace Xamarin.Forms.MathDisplay
         public static event StaticEventHandler<ChangedEventArgs<ViewLoc>> CursorMoved;
 
         public static CursorView Cursor { get; private set; }
-        public static int Index { get; private set; }
+        private static int Index;
+        private static int RealIndex => Cursor.Parent == null ? 0 : Cursor.Index();
 
         static SoftKeyboard()
         {
             Cursor = new CursorView();
             Cursor.MeasureInvalidated += (sender, e) => Cursor.HeightRequest = Text.MaxTextHeight * Cursor.Parent.FontSize / Text.MaxFontSize;
+            /*Cursor.ParentChanged += (sender, e) =>
+            {
+                print.log("cursor parent changed", e.OldValue, e.NewValue);
+                if (e.OldValue != null)
+                {
+                    e.OldValue.ChildAdded -= ParentListener;
+                    e.OldValue.ChildRemoved -= ParentListener;
+                }
+                if (e.NewValue != null)
+                {
+                    e.NewValue.ChildAdded += ParentListener;
+                    e.NewValue.ChildRemoved += ParentListener;
+                }
+            };*/
         }
+
+        /*private static bool SafeInsert = false;
+
+        private static void ParentListener(object sender, ElementEventArgs e)
+        {
+            if (e.Element != Cursor && !SafeInsert)
+            {
+                print.log("alskjdf;lkjsad", Cursor.Parent, Cursor.Index());
+                //Index = Cursor.Index();
+            }
+        }*/
 
         public static void Type(string str)
         {
+            Index = RealIndex;
             //Suround previous thing with parentheses if it's an exponent or a fraction
             if (str[0] == '^' && Index > 0 && ((Cursor.Parent.Children[Index - 1] is Expression && (Cursor.Parent.Children[Index - 1] as Expression).TextFormat == TextFormatting.Superscript) || Cursor.Parent.Children[Index - 1] is Fraction))
             {
@@ -64,6 +92,7 @@ namespace Xamarin.Forms.MathDisplay
 
         public static bool Delete()
         {
+            Index = RealIndex;
             //print.log(index, Cursor.Parent.Children.Count, Cursor.Parent);
             //foreach (View v in Cursor.Parent.Children)
                 //print.log(v, v.GetType());
@@ -96,7 +125,7 @@ namespace Xamarin.Forms.MathDisplay
             }
             
             Cursor.Parent.OnInputChanged();
-
+            
             return true;
         }
 
@@ -143,7 +172,7 @@ namespace Xamarin.Forms.MathDisplay
             {
                 return MoveCursor(root, root.Children.Count);
             }
-            
+            Index = RealIndex;
             Tuple<Expression, int> last = new Tuple<Expression, int>(root, Index = root.Children.Count * (direction - 1) / -2);
             Expression e = root;
             double left = offset + Position(root, Index);
@@ -163,7 +192,7 @@ namespace Xamarin.Forms.MathDisplay
                 }
                 right += Position(e, Index);
 
-                print.log("a;lksjdklf;", left, target, right, last, e, Index);
+                Print.Log("a;lksjdklf;", left, target, right, last, e, Index);
                 if (target.IsBetweenBetter(left, right) || Math.Sign(right - left) == direction * -1)
                 {
                     if (Math.Abs(target - left) <= Math.Abs(target - right))
@@ -453,6 +482,7 @@ namespace Xamarin.Forms.MathDisplay
         public static bool MoveCursor(Expression parent, int i = 0)
         {
             //if (parent == null || i < 0 || i >= parent.Children.Count || (parent == Cursor.Parent && Index == i))
+            Index = RealIndex;
             if (parent == Cursor.Parent && Index == i)
             {
                 return false;
@@ -472,6 +502,7 @@ namespace Xamarin.Forms.MathDisplay
         {
             if (Cursor.Parent != null)
             {
+                Index = RealIndex;
                 int oldIndex = Index;
                 var parent = checkIndex(direction, Cursor.Parent);
 
@@ -485,7 +516,7 @@ namespace Xamarin.Forms.MathDisplay
         private static Expression checkIndex(int direction, Expression startingParent)
         {
             Layout<View> parent = startingParent;
-            int index = SoftKeyboard.Index;
+            int index = Index;
 
             do
             {
@@ -520,7 +551,7 @@ namespace Xamarin.Forms.MathDisplay
             }
             while (!(parent is Expression));
 
-            SoftKeyboard.Index = index;
+            Index = index;
             return parent as Expression;
         }
 
@@ -575,7 +606,7 @@ namespace Xamarin.Forms.MathDisplay
             if ((index + direction).IsBetween(0, parent.Children.Count - 1))
             {
                 index += direction;
-                if (parent.Children[index] is CursorView || (parent is Expression && !(parent.Children[index] is IMathView)))
+                if (parent.Children[index] is CursorView)// || (parent is Expression && !(parent.Children[index] is IMathView)))
                 {
                     return parent.ChildInDirection(index, direction);
                 }

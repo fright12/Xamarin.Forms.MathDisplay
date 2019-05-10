@@ -70,7 +70,7 @@ namespace Xamarin.Forms.MathDisplay
 
         public static View[] Render(string str)
         {
-            print.log("rendering " + str);
+            Print.Log("rendering " + str);
             return Wrap(Instance.Parse(str), false);
         }
 

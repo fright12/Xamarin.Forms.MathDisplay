@@ -21,17 +21,21 @@ namespace Xamarin.Forms.MathDisplay
 
             if (parent != null)
             {
-                parent.InputChanged -= change;
+                parent.ChildAdded -= change;
+                parent.ChildRemoved -= change;
             }
             
             change();
 
             if (Parent != null)
             {
-                Parent.InputChanged += change;
+                Parent.ChildAdded += change;
+                Parent.ChildRemoved += change;
                 parent = Parent;
             }
         }
+
+        private void change(object sender, ElementEventArgs e) => change();
 
         private void change()
         {
@@ -39,7 +43,7 @@ namespace Xamarin.Forms.MathDisplay
             {
                 int index = this.Index();
                 object previous;
-                if (Parent.IndexOf(this) == 0 || (previous = Parent.ChildBefore(index)) != null && (Crunch.Machine.StringClassification.IsOperand(previous.ToString().Trim()) || previous.ToString().Trim() == "(") || (previous is Expression && (previous as Expression).TextFormat == TextFormatting.Subscript))
+                if (Parent.IndexOf(this) == 0 || ((previous = Parent.ChildBefore(index)) != null && (Crunch.Machine.StringClassification.IsOperand(previous.ToString().Trim()) || previous.ToString().Trim() == "(" || (previous is Expression && (previous as Expression).TextFormat == TextFormatting.Subscript))))
                 {
                     Text = "-";
                 }
@@ -50,7 +54,8 @@ namespace Xamarin.Forms.MathDisplay
             }
             else if (parent != null)
             {
-                parent.InputChanged -= change;
+                parent.ChildAdded -= change;
+                parent.ChildRemoved -= change;
             }
         }
 

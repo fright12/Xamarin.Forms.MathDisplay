@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Text;
 
@@ -37,7 +38,40 @@ namespace Xamarin.Forms.MathDisplay
 
         public new Expression Parent => base.Parent as Expression;
         public TextFormatting TextFormat { get; private set; }
-        public bool Editable = false;
+        //public bool Editable = false;
+
+        public static readonly BindableProperty EditableProperty = BindableProperty.Create("Editable", typeof(bool), typeof(Expression), defaultBindingMode: BindingMode.TwoWay, propertyChanged: OnEditableChanged);
+
+        public bool Editable
+        {
+            get { return (bool)GetValue(EditableProperty); }
+            set { SetValue(EditableProperty, value); }
+        }
+
+        private static void OnEditableChanged(object bindable, object oldValue, object newValue)
+        {
+            if (bindable.GetType() == typeof(Expression))
+            {
+                (bindable as Expression).Editable = (bool)newValue;
+            }
+            else if (bindable is Expression)
+            {
+                return;
+            }
+
+            if (bindable is Layout<View>)
+            {
+                Layout<View> layout = bindable as Layout<View>;
+
+                foreach (View v in layout.Children)
+                {
+                    if (v is Layout<View>)
+                    {
+                        OnEditableChanged(v as Layout<View>, oldValue, newValue);
+                    }
+                }
+            }
+        }
 
         public override double FontSize
         {
@@ -99,15 +133,10 @@ namespace Xamarin.Forms.MathDisplay
             {
                 (children[i].Parent as Expression)?.Children.Remove(children[i]);
                 Children.Insert(index + i, children[i]);
-                
-                if (children[i] is IMathView)
-                {
-                    (children[i] as IMathView).FontSize = FontSize;
-                }
 
                 if (children[i] is Layout<View>)
                 {
-                    PropogateProperty(children[i] as Layout<View>, Editable, (e, v) => e.Editable = e.Editable || v);
+                    //PropogateProperty(children[i] as Layout<View>, Editable, (e, v) => e.Editable = e.Editable || v);
                 }
             }
         }
@@ -117,7 +146,8 @@ namespace Xamarin.Forms.MathDisplay
         internal void OnInputChanged()
         {
             InputChanged?.Invoke();
-            Xamarin.Forms.Extensions.ExtensionMethods.Parent<Expression>(this)?.OnInputChanged();
+            this.Parent<Expression>()?.OnInputChanged();
+            //Xamarin.Forms.Extensions.ElementExtensions.Parent<Expression>(this)?.OnInputChanged();
         }
 
         private void PropogateProperty<T>(Layout<View> parent, T value, Action<Expression, T> setter)
@@ -134,6 +164,17 @@ namespace Xamarin.Forms.MathDisplay
                     PropogateProperty(v as Layout<View>, value, setter);
                 }
             }
+        }
+
+        protected override void OnChildAdded(Element child)
+        {
+            base.OnChildAdded(child);
+
+            if (child is IMathView)
+            {
+                (child as IMathView).FontSize = FontSize;
+            }
+            OnEditableChanged(child, Editable, Editable);
         }
 
         public static readonly int extraSpaceForCursor = 3;
