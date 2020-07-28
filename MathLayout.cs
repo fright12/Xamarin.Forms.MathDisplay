@@ -11,6 +11,39 @@ namespace Xamarin.Forms.MathDisplay
 {
     public abstract class MathLayout : TouchableStackLayout, IMathView
     {
+        public static BindableProperty TextColorProperty = BindableProperty.Create("TextColor", typeof(Color), typeof(MathLayout), Color.Default, propertyChanged: (bindable, oldValue, newValue) => ((MathLayout)bindable).ApplyColor());
+
+        public Color TextColor
+        {
+            get => (Color)GetValue(TextColorProperty);
+            set => SetValue(TextColorProperty, value);
+        }
+
+        protected override void OnChildAdded(Element child)
+        {
+            base.OnChildAdded(child);
+            ApplyColor(child);
+        }
+
+        private void ApplyColor(params Element[] children)
+        {
+            foreach(Element child in children.Length == 0 && Children != null ? Children : (IEnumerable<Element>)children)
+            {
+                if (child is MathLayout mathLayout)
+                {
+                    mathLayout.TextColor = TextColor;
+                }
+                if (child is Text text)
+                {
+                    text.TextColor = TextColor;
+                }
+                if (child is ImageText imageText)
+                {
+                    imageText.Source.Color = TextColor;
+                }
+            }
+        }
+
         public MathLayout ParentMathLayout
         {
             get
@@ -51,7 +84,7 @@ namespace Xamarin.Forms.MathDisplay
         }
         private double fontSize = Text.MaxFontSize;
 
-        public abstract double Middle { get; }
+        public virtual double Middle => Midline;
         public virtual Expression InputContinuation => null;
         public abstract double MinimumHeight { get; }
         public int MathViewCount { get; private set; }
@@ -95,6 +128,7 @@ namespace Xamarin.Forms.MathDisplay
             }
 
             SizeRequest request = base.OnMeasure(widthConstraint, heightConstraint);
+            //Size request = Size.Zero;
 
             double aboveMidline = 0;
             double belowMidline = 0;
@@ -105,7 +139,10 @@ namespace Xamarin.Forms.MathDisplay
 
                 if (v.IsVisible && v.ToString() != "(" && v.ToString() != ")")
                 {
-                    double height = (v is Expression) && (v as Expression).Children.Count == 0 ? 0 : v.Measure().Height;
+                    Size measured = (v is Expression) && (v as Expression).Children.Count == 0 ? Size.Zero : v.Measure();
+                    double height = measured.Height;
+                    //request.Width += measured.Width;
+                    //double height = (v is Expression) && (v as Expression).Children.Count == 0 ? 0 : v.Measure().Height;
                     double above = GetMidline(Children[i]) * height;
 
                     aboveMidline = System.Math.Max(aboveMidline, above);
@@ -118,9 +155,12 @@ namespace Xamarin.Forms.MathDisplay
                 Midline = aboveMidline / (belowMidline + aboveMidline);
             }
             request = new SizeRequest(new Size(PadLeft + request.Request.Width + PadRight, System.Math.Max(MinimumHeight, aboveMidline + belowMidline)));
+            //request = new Size(PadLeft + request.Width + PadRight, System.Math.Max(MinimumHeight, aboveMidline + belowMidline));
 
-            LayoutDataCache.Add(size, new Tuple<SizeRequest, double>(request, Midline));
-            return request;
+            //SizeRequest sr = new SizeRequest(request);
+            SizeRequest sr = request;
+            LayoutDataCache.Add(size, new Tuple<SizeRequest, double>(sr, Midline));
+            return sr;
         }
 
         protected virtual double GetMidline(View view) => (view as IMathView)?.Middle ?? 0.5;

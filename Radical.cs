@@ -24,7 +24,7 @@ namespace Xamarin.Forms.MathDisplay
                 Operand.FontSize = value;
                 Root.FontSize = value * Text.FontSizeDecrease;
 
-                RadicalSign.WidthRequest = Math.Floor(RadicalWidth);
+                RadicalSign.WidthRequest = Math.Ceiling(RadicalWidth);
                 AbsoluteLayout.SetLayoutBounds(RadicalSign.Parent, new Rectangle(0, 0, RadicalWidth * 0.5, 1));
             }
         }
@@ -33,9 +33,11 @@ namespace Xamarin.Forms.MathDisplay
         public override Expression InputContinuation => Operand;
         public override double MinimumHeight => Operand.MinimumHeight + 3;
 
-        public Radical(params View[] children) : this(new Expression(), children) { }
+        public Radical() { }
 
-        public Radical(Expression root, params View[] children)
+        //public Radical(params View[] children) : this(new Expression(), children) { }
+
+        public Radical(Expression root, Expression operand)
         {
             //BackgroundColor = Color.Yellow;
             Orientation = StackOrientation.Horizontal;
@@ -58,18 +60,20 @@ namespace Xamarin.Forms.MathDisplay
                 HorizontalOptions = LayoutOptions.Center,
                 Spacing = 0
             };
-            BarOperand.Children.Add(new BoxView()
+            BoxView topBar;
+            BarOperand.Children.Add(topBar = new BoxView()
             {
-                HeightRequest = 3,
+                HeightRequest = 2,
                 WidthRequest = 0,
-                BackgroundColor = Color.Gray
             });
-            BarOperand.Children.Add(Operand = new Expression(children));
+            topBar.SetBinding(BoxView.ColorProperty, this, "TextColor");
+            BarOperand.Children.Add(Operand = operand);
 
             //*******       / *******
             //*******  __  /  *******
             //*******    \/   *******
             RadicalSign = Text.CreateRadical();
+            ((RadicalSign as Image).Source as FontImageSource).SetBinding(FontImageSource.ColorProperty, this, "TextColor");
             MaxRadicalWidth = RadicalSign.Measure().Width;
 
             AbsoluteLayout RadicalContainer = new AbsoluteLayout()
@@ -117,7 +121,7 @@ namespace Xamarin.Forms.MathDisplay
         public override string ToString()
         {
             string root = Root.ToString();
-            return "(" + Operand.ToString() + "^(1/" + (root == "" ? "2" : root) + "))";
+            return Operand.ToString() + "^(1/" + (root == "" ? "2" : root) + ")";
         }
     }
 }

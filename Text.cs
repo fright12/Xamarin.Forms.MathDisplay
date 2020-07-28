@@ -17,7 +17,9 @@ namespace Xamarin.Forms.MathDisplay
         public static readonly double FontSizeDecrease = 0.8;
 
         public new Expression Parent => base.Parent as Expression;
-        
+
+        public Text() : this(true) { }
+
         public Text(bool isVisible = true)
         {
             //BackgroundColor = Color.Yellow;
