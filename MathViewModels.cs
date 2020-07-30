@@ -4,19 +4,45 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Extensions;
-using System.Linq;
 using System.Windows.Input;
 using Parse;
-using Xamarin.Forms;
-using Xamarin.Forms.MathDisplay;
 
 namespace Xamarin.Forms.MathDisplay
 {
-    using ExpressionList = PartialObservableLinkedList<MathViewModel>;
+    public class ExpressionList : PartialObservableLinkedList<object>
+    {
+        public ExpressionList(LinkedList<object> fullList) : base(fullList) { }
+
+        public ExpressionList(LinkedList<object> fullList, LinkedListNode<object> first, LinkedListNode<object> last) : base(fullList, first, last) { }
+
+        public void ParentSet(LinkedListNode<object> node) => OnAdded(node);
+
+        protected override void OnAdded(LinkedListNode<object> node)
+        {
+            if (node.Value is MathViewModel mvm)
+            {
+                //mvm.Parent = this;
+            }
+
+            base.OnAdded(node);
+        }
+
+        protected override void OnRemoved(object value)
+        {
+            if (value is MathViewModel mvm)
+            {
+                //mvm.Parent = this;
+            }
+
+            base.OnRemoved(value);
+        }
+    }
 
     public class PartialObservableLinkedList<T> : IEnumerable<T>, INotifyCollectionChanged
     {
         public event NotifyCollectionChangedEventHandler CollectionChanged;
+
+        public int Count => System.Linq.Enumerable.Count(this);
 
         private LinkedList<T> FullList;
         private LinkedListNode<T> First => _First?.Next ?? FullList.First;
@@ -31,6 +57,15 @@ namespace Xamarin.Forms.MathDisplay
             FullList = fullList;
             _First = first;
             _Last = last;
+            
+            foreach (LinkedListNode<T> node in NodesBetween(First, Last))
+            {
+                if (node.Value is MathViewModel mvm)
+                {
+                    //mvm.Parent?.OnRemoved(node.Value);
+                    //mvm.Parent = this as ExpressionList;
+                }
+            }
         }
 
         public void AddFirst(T value) => AddBefore(First, value);
@@ -40,32 +75,45 @@ namespace Xamarin.Forms.MathDisplay
 
         public void AddBefore(LinkedListNode<T> node, T value)
         {
-            FullList.AddBefore(node, value);
-            OnAdded(node, value, -1);
+            if (node == null)
+            {
+                FullList.AddFirst(value);
+            }
+            else
+            {
+                FullList.AddBefore(node, value);
+            }
+            OnAdded(node.Previous);
         }
 
         public void AddBefore(LinkedListNode<T> node, LinkedListNode<T> newNode)
         {
-            FullList.AddBefore(node, newNode);
-            OnAdded(node, newNode.Value, -1);
+            if (node == null)
+            {
+                FullList.AddFirst(newNode);
+            }
+            else
+            {
+                FullList.AddBefore(node, newNode);
+            }
+            OnAdded(node?.Previous ?? FullList.First);
         }
 
         public void AddAfter(LinkedListNode<T> node, T value)
         {
             FullList.AddAfter(node, value);
-            OnAdded(node, value, 1);
+            OnAdded(node.Next);
         }
 
         public void AddAfter(LinkedListNode<T> node, LinkedListNode<T> newNode)
         {
             FullList.AddAfter(node, newNode);
-            OnAdded(node, newNode.Value, 1);
+            OnAdded(node.Next);
         }
 
-        private void OnAdded(LinkedListNode<T> node, T item, int offset)
+        protected virtual void OnAdded(LinkedListNode<T> node)
         {
-            int index = IndexOf(node);
-            CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, item, index + offset));
+            CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, node.Value, IndexOf(node)));
         }
 
         public void Remove(T value)
@@ -80,7 +128,7 @@ namespace Xamarin.Forms.MathDisplay
             OnRemoved(node.Value);
         }
 
-        private void OnRemoved(T value)
+        protected virtual void OnRemoved(T value)
         {
             CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, value, IndexOf(value)));
         }
@@ -88,7 +136,7 @@ namespace Xamarin.Forms.MathDisplay
         public static void Move(LinkedListNode<T> node, PartialObservableLinkedList<T> oldList, PartialObservableLinkedList<T> newList)
         {
             oldList.OnRemoved(node.Value);
-            newList.OnAdded(node, node.Value, 0);
+            //newList.OnAdded(node);
         }
 
         private int IndexOf(LinkedListNode<T> node) => IndexOf(node.Value);
@@ -106,8 +154,9 @@ namespace Xamarin.Forms.MathDisplay
                     return -1;
                 }
 
-                first = first.Next;
+                //if (!(first.Value is MathViewModel mvm && mvm.Parent != this as ExpressionList))
                 index++;
+                first = first.Next;
             }
 
             return index;
@@ -153,19 +202,25 @@ namespace Xamarin.Forms.MathDisplay
 
         public IEnumerator<T> GetEnumerator()
         {
-            LinkedListNode<T> node = First ?? FullList.First;
-            LinkedListNode<T> last = Last ?? FullList.Last;
-
-            while (node != null)
+            foreach (LinkedListNode<T> node in NodesBetween(First, Last))
             {
+                //if (!(node.Value is MathViewModel mvm && mvm.Parent != this as ExpressionList))
                 yield return node.Value;
+            }
+        }
 
-                if (node == last)
+        public static IEnumerable<LinkedListNode<T>> NodesBetween(LinkedListNode<T> first, LinkedListNode<T> last)
+        {
+            while (first != null)
+            {
+                yield return first;
+
+                if (first == last)
                 {
                     break;
                 }
 
-                node = node.Next;
+                first = first.Next;
             }
         }
 
@@ -174,30 +229,7 @@ namespace Xamarin.Forms.MathDisplay
 
     public abstract class MathViewModel : BindableObject
     {
-        public ExpressionViewModel Parent { get; internal set; }
-    }
-
-    public abstract class MathLayoutViewModel : MathViewModel, IEnumerable<TextViewModel>
-    {
-        public virtual ExpressionViewModel InputContinuation => null;
-
-        public abstract void Lyse();
-        protected void Lyse(params ExpressionViewModel[] sources)
-        {
-            int index = Parent.Children.IndexOf(this);
-            for (int i = sources.Length - 1; i >= 0; i--)
-            {
-                for (int j = sources[i].Children.Count - 1; j >= 0; j--)
-                {
-                    Parent.Children.Insert(index + 1, sources[i].Children[j]);
-                }
-            }
-            Parent.Children.RemoveAt(index);
-        }
-
-        public abstract IEnumerator<TextViewModel> GetEnumerator();
-
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+        
     }
 
     public class TextViewModel : MathViewModel
@@ -211,6 +243,8 @@ namespace Xamarin.Forms.MathDisplay
 
     public class CursorViewModel : TextViewModel
     {
+        public Stack<ObservableCollection<object>> Parents { get; } = new Stack<ObservableCollection<object>>();
+
         public CursorViewModel() => Text = "|";
     }
 
@@ -219,7 +253,7 @@ namespace Xamarin.Forms.MathDisplay
 
     }
 
-    public class ExpressionViewModel : MathLayoutViewModel
+    public class ExpressionViewModel : MathViewModel
     {
         public static readonly BindableProperty TextProperty = BindableProperty.Create(nameof(Text), typeof(string), typeof(Expression));
 
@@ -229,87 +263,29 @@ namespace Xamarin.Forms.MathDisplay
             set => SetValue(TextProperty, value);
         }
 
-        public override ExpressionViewModel InputContinuation => TextFormat != TextFormatting.Subscript && Children.Count == 0 ? this : null;
+        public IList Children { get; set; }
 
         public TextFormatting TextFormat { get; set; }
-
-        public ObservableCollection<MathViewModel> Children { get; private set; } = new ObservableCollection<MathViewModel>();
-
-        public ExpressionViewModel(params MathViewModel[] children)
-        {
-            foreach (MathViewModel mvm in children)
-            {
-                Children.Add(mvm);
-            }
-
-            Children.CollectionChanged += ChildrenChanged;
-        }
-
-        public ExpressionViewModel(TextFormatting textFormat, params MathViewModel[] children) : this(children)
-        {
-            TextFormat = textFormat;
-        }
-
-        public override void Lyse() => Lyse(this);
-
-        private void ChildrenChanged(object sender, NotifyCollectionChangedEventArgs e)
-        {
-            if (e.NewItems != null)
-            {
-                foreach (MathViewModel mvm in e.NewItems)
-                {
-                    mvm.Parent = this;
-                }
-            }
-        }
-
-        public override IEnumerator<TextViewModel> GetEnumerator()
-        {
-            foreach (MathViewModel mvm in this)
-            {
-                if (mvm is TextViewModel text)
-                {
-                    yield return text;
-                }
-                else if (mvm is MathLayoutViewModel layout)
-                {
-                    foreach (TextViewModel text1 in layout)
-                    {
-                        yield return text1;
-                    }
-                }
-            }
-        }
     }
 
-    public class RadicalViewModel : MathLayoutViewModel
+    public class RadicalViewModel : MathViewModel
     {
-        public ExpressionViewModel Root { get; set; }
-        public ExpressionViewModel Radicand { get; set; }
+        public IList Root { get; set; }
+        public IList Radicand { get; set; }
+    }
 
-        public override ExpressionViewModel InputContinuation => Radicand;
+    public class FractionViewModel : MathViewModel, System.Collections.IBiEnumerable
+    {
+        public IList Numerator { get; set; }
 
-        public override void Lyse() => Lyse(Root, Radicand);
+        public IList Denominator { get; set; }
 
-        public override IEnumerator<TextViewModel> GetEnumerator()
+        public System.Collections.IBiEnumerator GetEnumerator()
         {
             throw new NotImplementedException();
         }
-    }
 
-    public class FractionViewModel : MathLayoutViewModel
-    {
-        public ExpressionList Numerator { get; set; }
-        public ExpressionList Denominator { get; set; }
-
-        public override ExpressionViewModel InputContinuation => null;
-
-        public override void Lyse() { }// => Lyse(Numerator, Denominator);
-
-        public override IEnumerator<TextViewModel> GetEnumerator()
-        {
-            throw new NotImplementedException();
-        }
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
 
     public class MathEntryViewModel : BindableObject // ExpressionViewModel
@@ -338,21 +314,25 @@ namespace Xamarin.Forms.MathDisplay
         public ICommand BackspaceCommand { get; set; }
         public ICommand MoveCursorCommand { get; set; }
 
-        public PartialObservableLinkedList<MathViewModel> Children { get; }
+        public ObservableCollection<object> Children { get; }
 
-        private LinkedList<MathViewModel> List;
-        private LinkedListNode<MathViewModel> CursorNode;
+        //private LinkedList<object> List;
+        //private LinkedListNode<object> CursorNode;
 
         //private ExpressionViewModel Expression;
-        private MathViewModel Cursor;
+        private CursorViewModel Cursor;
 
         public MathEntryViewModel()
         {
-            Children = new PartialObservableLinkedList<MathViewModel>(List = new LinkedList<MathViewModel>());
-            Cursor = new CursorViewModel();
+            //Children = new ExpressionList(List = new LinkedList<object>());
+            Children = new ObservableCollection<object>
+            {
+                (Cursor = new CursorViewModel())
+            };
+            Cursor.Parents.Push(Children);
 
-            List.AddFirst(CursorNode = new LinkedListNode<MathViewModel>(Cursor));
-
+            //Children.AddFirst(CursorNode = new LinkedListNode<object>(Cursor));
+            
             InputCommand = new Command<string>(value =>
             {
                 /*MainPage page = SoftKeyboard.Cursor.Parent<MainPage>();
@@ -393,16 +373,20 @@ namespace Xamarin.Forms.MathDisplay
                 }
                 else if (value == CursorKey.Left)
                 {
-                    SoftKeyboard.Left();
+                    /*LinkedListNode<object> node = CursorNode.Previous;
+                    ExpressionList expression = ((MathViewModel)CursorNode.Value).Parent;
+                    
+                    expression.Remove(CursorNode);
+                    expression.AddBefore(node, CursorNode);*/
+
+                    //SoftKeyboard.Left();
                     //MathField.CursorPosition--;
                 }
             });
         }
 
-        public static MathViewModel LeftParenthesis() => new ImageTextViewModel { Text = "(" };
-        public static MathViewModel RightParenthesis() => new ImageTextViewModel { Text = ")" };
-
-        private ExpressionViewModel Expression => Cursor.Parent;
+        public static readonly MathViewModel LeftParenthesis = new ImageTextViewModel { Text = "(" };
+        public static readonly MathViewModel RightParenthesis = new ImageTextViewModel { Text = ")" };
 
         public void Type(string str)
         {
@@ -420,56 +404,74 @@ namespace Xamarin.Forms.MathDisplay
                 Expression.Children.Insert(Index++, RightParenthesis());
             }*/
 
-            MathViewModel[] list;
+            List<MathViewModel> list;
             if (str == "(")
             {
-                list = new MathViewModel[] { LeftParenthesis() };
+                list = new List<MathViewModel> { LeftParenthesis };
             }
             else if (str == ")")
             {
-                list = new MathViewModel[] { RightParenthesis() };
+                list = new List<MathViewModel> { RightParenthesis };
             }
             else
             {
                 list = Reader.Render(Crunch.Machine.StringClassification.Simple(str));
             }
 
-            /*if (list[0] is FractionViewModel fraction && fraction.Numerator.Children.Count == 0)
+            ObservableCollection<object> parent = Cursor.Parents.Peek();
+            int index = parent.IndexOf(Cursor);
+            
+            if (list[0] is FractionViewModel fraction && fraction.Numerator.Count == 0)
             {
-                fraction.Numerator.Fill(Expression.Children, Index - 1);
+                fraction.Numerator = new ObservableCollection<object>();
+
+                int start = index - 1;
+                int count = start - parent.BeginningOfPreviousMathObject(start);
+                for (int i = 0; i <= count; i++)
+                {
+                    object mvm = parent[start - count];
+
+                    parent.Remove(mvm);
+                    fraction.Numerator.Add(mvm);
+                }
+
                 fraction.Numerator.Trim();
-                Index -= fraction.Numerator.Children.Count;
-            }*/
+                index -= fraction.Numerator.Count;
+            }
+
+            //LinkedListNode<object> node = CursorNode.Previous;
+            //ExpressionList parent = ((MathViewModel)CursorNode.Value).Parent;
 
             foreach (MathViewModel mvm in list)
             {
-                LinkedListNode<MathViewModel> node = new LinkedListNode<MathViewModel>(mvm);
+                //LinkedListNode<MathViewModel> node = new LinkedListNode<MathViewModel>(mvm);
+                //List.AddBefore(CursorNode, mvm);
+                //Expression.ParentSet(node);
 
-                if (mvm is FractionViewModel fraction)// && fraction.Numerator.Children.Count == 0)
+                parent.Insert(index++, mvm);
+            }
+
+            for (int i = 0; i < list.Count; i++)
+            {
+                /*node = node?.Next ?? List.First;
+
+                ExpressionList Continuation() => new ExpressionList(List, node, CursorNode.Next);
+
+                if (node.Value is ExpressionViewModel expression)
                 {
-                    LinkedListNode<MathViewModel> open = new LinkedListNode<MathViewModel>(new TextViewModel
-                    {
-                        Text = "("
-                    });
+                    expression.Children = Continuation();
+                }
+                else if (node.Value is FractionViewModel fraction)// && fraction.Numerator.Children.Count == 0)
+                {
+                    LinkedListNode<object> start = SoftKeyboard.BeginningOfPreviousMathObject(List, node.Previous);
 
-                    fraction.Numerator = new ExpressionList(List, open, node);
-
-                    LinkedListNode<MathViewModel> start = SoftKeyboard.BeginningOfPreviousMathObject(List, CursorNode);
-                    List.AddBefore(start, open);
-
-                    Children.Remove(start);
+                    fraction.Numerator = new ExpressionList(List, start.Previous, node);
+                    fraction.Denominator = Continuation();
                 }
 
-                //Expression.Children.Insert(Index++, mvm);
-                Children.AddBefore(CursorNode, node);
+                parent.ParentSet(node);*/
             }
-
-            //LinkedListNode<MathViewModel> node = CursorNode.Previous;
-            for (int i = 0; i < list.Length; i++)
-            {
-                
-            }
-            Index += list.Length;
+            Index += list.Count;
 
             /*ExpressionViewModel continuation = (list.Last() as MathLayoutViewModel)?.InputContinuation;
             if (continuation != null)
@@ -491,21 +493,32 @@ namespace Xamarin.Forms.MathDisplay
             string deleted = "";
 
             //Try to delete the container
-            if (Index == 0)
+            /*if (CursorNode?.Previous.Value is FractionViewModel fraction)
             {
-                if (Cursor.Parent.Parent != null)
+                foreach (ExpressionList expression in fraction.Operands)
                 {
-                    Cursor.Parent.Lyse();
+
                 }
-                //Index = Cursor.Index();
             }
             //Otherwise just delete the thing before
-            else
+            else*/
+            /*if (CursorNode.Previous != null)
             {
                 Index--;
                 //deleted = Expression.Children[Index].ToString();
-                Expression.Children.RemoveAt(Index);
-            }
+
+                ExpressionList parent = (CursorNode.Previous.Value as MathViewModel).Parent;
+                Children.Remove(CursorNode.Previous);
+
+                if (parent != null && parent != (CursorNode.Value as MathViewModel)?.Parent)
+                {
+                    parent.ParentSet(CursorNode);
+                }
+                //Expression.Children.RemoveAt(Index);
+            }*/
+
+            //Infect(node => node.Previous);
+            //Infect(node => node.Next);
 
             //Deleted?.Invoke(deleted);
 
@@ -513,6 +526,33 @@ namespace Xamarin.Forms.MathDisplay
 
             return true;
         }
+
+        /*private void Infect(Func<LinkedListNode<object>, LinkedListNode<object>> next)
+        {
+            LinkedListNode<object> start = CursorNode;
+
+            while (true)
+            {
+                start = next(start);
+
+                if (!(start?.Value is TextViewModel))
+                {
+                    break;
+                }
+
+                if (start.Value is MathViewModel mvm)
+                {
+                    MathViewModel cursor = (MathViewModel)CursorNode.Value;
+
+                    if (mvm.Parent == cursor.Parent)
+                    {
+                        break;
+                    }
+
+                    cursor.Parent.ParentSet(start);
+                }
+            }
+        }*/
 
         private static void TextPropertyChanged(BindableObject bindable, object oldValue, object newValue)
         {
