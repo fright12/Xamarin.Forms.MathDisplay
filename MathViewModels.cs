@@ -4,8 +4,8 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Extensions;
+using System.Linq;
 using System.Windows.Input;
-using Parse;
 
 namespace Xamarin.Forms.MathDisplay
 {
@@ -241,11 +241,153 @@ namespace Xamarin.Forms.MathDisplay
         public override string ToString() => Text;
     }
 
-    public class CursorViewModel : TextViewModel
+    public class CursorViewModel : TextViewModel, IEditEnumerator<object>
     {
-        public Stack<ObservableCollection<object>> Parents { get; } = new Stack<ObservableCollection<object>>();
+        public object Current => Top.Current;
 
-        public CursorViewModel() => Text = "|";
+        private Stack<IBiEnumerator> Parents { get; } = new Stack<IBiEnumerator>();
+        private IBiEnumerator Top => Parents.Peek();
+        public IEditEnumerator<object> Itr => Top as IEditEnumerator<object>;
+
+        public CursorViewModel(IEditEnumerator<object> parent)
+        {
+            Parents.Push(parent);
+            parent.AddNext(this);
+            Top.MoveNext();
+
+            Text = "|";
+        }
+
+        public void Add(int n, object item) => Itr?.Add(n, item);
+
+        public bool Remove(int n)
+        {
+            if (n == -1)
+            {
+                return RemovePrev();
+            }
+
+            throw new NotImplementedException();
+        }
+
+        private bool RemovePrev()
+        {
+            if (Itr.RemovePrev())
+            {
+                return true;
+            }
+
+            int count = Parents.Count;
+
+            do
+            {
+                if (Parents.Count == 1)
+                {
+                    return false;
+                }
+
+                Parents.Pop();
+            }
+            while (Itr == null);
+
+            IEditEnumerator<object> root = Itr;
+            Itr.MoveNext();
+
+            while (true)
+            {
+                move(-1);
+
+                if (Itr == root)
+                {
+                    break;
+                }
+                else if (Itr?.Current != null && Parents.Count <= count)
+                {
+                    //Itr.MovePrev();
+                    object item = Itr.Current;
+                    Itr.MoveNext();
+
+                    if (Itr.RemovePrev())
+                    {
+                        root.AddNext(item);
+                    }
+                }
+            }
+
+            Itr.MoveNext();
+            Itr.RemovePrev();
+
+            SeekCursor(1);
+
+            return true;
+        }
+
+        private void SeekCursor(int direction)
+        {
+            while (Top.Current != this)
+            {
+                move(direction);
+            }
+        }
+
+        public bool MoveNext() => Move(1);
+
+        public bool Move(int n)
+        {
+            int sign = Math.Sign(n);
+
+            Itr.Move(sign);
+            Itr.Remove(-sign);
+            Itr.Move(-sign);
+
+            bool result;
+            do
+            {
+                result = move(n);
+
+                if (!result)
+                {
+                    sign *= -1;
+                    break;
+                }
+            }
+            while (Itr == null);
+
+            Itr.Add(sign, this);
+            Top.Move(sign);
+
+            return result;
+        }
+
+        private bool move(int n)
+        {
+            if (!Top.Move(n))
+            {
+                if (Parents.Count == 1)
+                {
+                    return false;
+                }
+
+                Parents.Pop();
+            }
+            else if (Current is IEnumerable<object> enumerable && enumerable.GetBiEnumerator() != null)
+            {
+                Parents.Push(enumerable.GetEditEnumerator() ?? enumerable.GetBiEnumerator());
+
+                if (Math.Sign(n) == -1)
+                {
+                    Top.End();
+                }
+            }
+
+            return true;
+        }
+
+        public void Reset() => Top.Reset();
+
+        public void End() => Top.End();
+
+        public void Dispose() => Itr?.Dispose();
     }
 
     public class ImageTextViewModel : TextViewModel
@@ -253,7 +395,25 @@ namespace Xamarin.Forms.MathDisplay
 
     }
 
-    public class ExpressionViewModel : MathViewModel
+    public abstract class MathLayoutViewModel : MathViewModel
+    {
+        public virtual IList InputContinuation => null;
+    }
+
+    public abstract class OperatorViewModel : MathLayoutViewModel, IBiEnumerable<object>
+    {
+        public abstract IEnumerable GetOperands();
+
+        public IBiEnumerator<object> GetEnumerator() => new ListBiEnumerator<object>(System.Linq.Enumerable.ToList(GetOperands().OfType<object>()));
+
+        IBiEnumerator IBiEnumerable.GetEnumerator() => GetEnumerator();
+
+        IEnumerator<object> IEnumerable<object>.GetEnumerator() => GetEnumerator();
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    }
+
+    public class ExpressionViewModel : MathLayoutViewModel, IEditEnumerable<object>
     {
         public static readonly BindableProperty TextProperty = BindableProperty.Create(nameof(Text), typeof(string), typeof(Expression));
 
@@ -266,26 +426,48 @@ namespace Xamarin.Forms.MathDisplay
         public IList Children { get; set; }
 
         public TextFormatting TextFormat { get; set; }
+
+        public override IList InputContinuation => TextFormat != TextFormatting.Subscript && Children.Count == 0 ? Children : null;
+
+        public IEditEnumerator<object> GetEnumerator() => (Children as IList<object>).GetEditEnumerator();
+
+        IEditEnumerator IEditEnumerable.GetEnumerator() => GetEnumerator();
+
+        IBiEnumerator<object> IBiEnumerable<object>.GetEnumerator() => GetEnumerator();
+
+        IBiEnumerator IBiEnumerable.GetEnumerator() => GetEnumerator();
+
+        IEnumerator<object> IEnumerable<object>.GetEnumerator() => GetEnumerator();
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
 
-    public class RadicalViewModel : MathViewModel
+    public class RadicalViewModel : OperatorViewModel
     {
         public IList Root { get; set; }
         public IList Radicand { get; set; }
+
+        public override IList InputContinuation => Radicand;
+
+        public override IEnumerable GetOperands()
+        {
+            yield return Root;
+            yield return Radicand;
+        }
     }
 
-    public class FractionViewModel : MathViewModel, System.Collections.IBiEnumerable
+    public class FractionViewModel : OperatorViewModel
     {
         public IList Numerator { get; set; }
-
         public IList Denominator { get; set; }
 
-        public System.Collections.IBiEnumerator GetEnumerator()
-        {
-            throw new NotImplementedException();
-        }
+        public override IList InputContinuation => Denominator;
 
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+        public override IEnumerable GetOperands()
+        {
+            yield return Numerator;
+            yield return Denominator;
+        }
     }
 
     public class MathEntryViewModel : BindableObject // ExpressionViewModel
@@ -325,12 +507,9 @@ namespace Xamarin.Forms.MathDisplay
         public MathEntryViewModel()
         {
             //Children = new ExpressionList(List = new LinkedList<object>());
-            Children = new ObservableCollection<object>
-            {
-                (Cursor = new CursorViewModel())
-            };
-            Cursor.Parents.Push(Children);
-
+            Children = new ObservableCollection<object>();
+            Cursor = new CursorViewModel(Children.GetEditEnumerator());
+            
             //Children.AddFirst(CursorNode = new LinkedListNode<object>(Cursor));
             
             InputCommand = new Command<string>(value =>
@@ -368,19 +547,11 @@ namespace Xamarin.Forms.MathDisplay
                 }
                 else if (value == CursorKey.Right)
                 {
-                    SoftKeyboard.Right();
-                    //MathField.CursorPosition++;
+                    Cursor.MoveNext();
                 }
                 else if (value == CursorKey.Left)
                 {
-                    /*LinkedListNode<object> node = CursorNode.Previous;
-                    ExpressionList expression = ((MathViewModel)CursorNode.Value).Parent;
-                    
-                    expression.Remove(CursorNode);
-                    expression.AddBefore(node, CursorNode);*/
-
-                    //SoftKeyboard.Left();
-                    //MathField.CursorPosition--;
+                    Cursor.MovePrev();
                 }
             });
         }
@@ -395,7 +566,6 @@ namespace Xamarin.Forms.MathDisplay
                 return;
             }
 
-            int Index = SoftKeyboard.RealIndex;
             //Suround previous thing with parentheses if it's an exponent or a fraction
             /*if (str[0] == '^' && Index > 0 && ((Expression.Children
                 [Index - 1] is ExpressionViewModel expression && expression.TextFormat == TextFormatting.Superscript) || Expression.Children[Index - 1] is FractionViewModel))
@@ -404,7 +574,7 @@ namespace Xamarin.Forms.MathDisplay
                 Expression.Children.Insert(Index++, RightParenthesis());
             }*/
 
-            List<MathViewModel> list;
+            IList list;
             if (str == "(")
             {
                 list = new List<MathViewModel> { LeftParenthesis };
@@ -415,28 +585,29 @@ namespace Xamarin.Forms.MathDisplay
             }
             else
             {
-                list = Reader.Render(Crunch.Machine.StringClassification.Simple(str));
+                list = Reader<ObservableCollection<object>>.Render(Crunch.Machine.StringClassification.Simple(str));
             }
 
-            ObservableCollection<object> parent = Cursor.Parents.Peek();
-            int index = parent.IndexOf(Cursor);
-            
+            IEditEnumerator<object> itr = Cursor.Itr;
+
             if (list[0] is FractionViewModel fraction && fraction.Numerator.Count == 0)
             {
                 fraction.Numerator = new ObservableCollection<object>();
+                fraction.Denominator = new ObservableCollection<object>();
 
-                int start = index - 1;
-                int count = start - parent.BeginningOfPreviousMathObject(start);
-                for (int i = 0; i <= count; i++)
+                itr.MovePrev();
+                itr.BeginningOfPreviousMathObject();
+                while (itr.Current != Cursor)
                 {
-                    object mvm = parent[start - count];
+                    object current = itr.Current;
 
-                    parent.Remove(mvm);
-                    fraction.Numerator.Add(mvm);
+                    itr.MoveNext();
+                    itr.RemovePrev();
+
+                    fraction.Numerator.Add(current);
                 }
 
                 fraction.Numerator.Trim();
-                index -= fraction.Numerator.Count;
             }
 
             //LinkedListNode<object> node = CursorNode.Previous;
@@ -448,49 +619,27 @@ namespace Xamarin.Forms.MathDisplay
                 //List.AddBefore(CursorNode, mvm);
                 //Expression.ParentSet(node);
 
-                parent.Insert(index++, mvm);
+                //parent.Insert(index++, mvm);
+                itr.AddPrev(mvm);
             }
 
-            for (int i = 0; i < list.Count; i++)
-            {
-                /*node = node?.Next ?? List.First;
-
-                ExpressionList Continuation() => new ExpressionList(List, node, CursorNode.Next);
-
-                if (node.Value is ExpressionViewModel expression)
-                {
-                    expression.Children = Continuation();
-                }
-                else if (node.Value is FractionViewModel fraction)// && fraction.Numerator.Children.Count == 0)
-                {
-                    LinkedListNode<object> start = SoftKeyboard.BeginningOfPreviousMathObject(List, node.Previous);
-
-                    fraction.Numerator = new ExpressionList(List, start.Previous, node);
-                    fraction.Denominator = Continuation();
-                }
-
-                parent.ParentSet(node);*/
-            }
-            Index += list.Count;
-
-            /*ExpressionViewModel continuation = (list.Last() as MathLayoutViewModel)?.InputContinuation;
+            IList continuation = (list[list.Count - 1] as MathLayoutViewModel)?.InputContinuation;
             if (continuation != null)
             {
-                continuation.Children.Add(Cursor);
-                Index = 0;
-            }*/
-
-            //Cursor.Parent.OnInputChanged();
+                MoveCursorCommand?.Execute(CursorKey.Left);
+            }
         }
 
         public bool Delete()
         {
-            int Index = SoftKeyboard.RealIndex;
+            if (!Cursor.RemovePrev())
+            {
+                return false;
+            }
+
             //print.log(index, Cursor.Parent.Children.Count, Cursor.Parent);
             //foreach (View v in Cursor.Parent.Children)
             //print.log(v, v.GetType());
-
-            string deleted = "";
 
             //Try to delete the container
             /*if (CursorNode?.Previous.Value is FractionViewModel fraction)

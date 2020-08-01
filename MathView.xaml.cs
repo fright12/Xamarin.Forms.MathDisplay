@@ -41,7 +41,18 @@ namespace Xamarin.Forms.MathDisplay
         public DataTemplate ExpressionTemplate { get; set; }
         public DataTemplate FractionTemplate { get; set; }
         public DataTemplate RadicalTemplate { get; set; }
-        private DataTemplate CursorTemplate = new DataTemplate(() => SoftKeyboard.Cursor);
+        private DataTemplate CursorTemplate { get; set; }
+
+        private readonly CursorView Cursor;
+
+        public MathElementTemplateSelector()
+        {
+            Cursor = new CursorView();
+            Cursor.SetDynamicResource(VisualElement.BackgroundColorProperty, "DetailColor");
+            Cursor.MeasureInvalidated += (sender, e) => Cursor.HeightRequest = Text.MaxTextHeight * ((Cursor as View).Parent as Expression).FontSize / Text.MaxFontSize;
+
+            CursorTemplate = new DataTemplate(() => Cursor);
+        }
 
         protected override DataTemplate OnSelectTemplate(object item, BindableObject container)
         {

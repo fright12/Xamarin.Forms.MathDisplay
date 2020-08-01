@@ -339,17 +339,15 @@ namespace Xamarin.Forms.MathDisplay
             return index + 1;
         }
 
-        public static int BeginningOfPreviousMathObject(this IList input, int index)
+        public static void BeginningOfPreviousMathObject(this IEditEnumerator itr)
         {
             int imbalance = 0;
-            object view = null;
 
             //Grab stuff until we hit an operand
-            while (index.IsBetween(0, input.Count - 1) && !(Crunch.Machine.StringClassification.IsOperator(input[index].ToString().Trim()) && input[index].ToString() != "-" && imbalance == 0))
+            while (itr.MovePrev() && !(Crunch.Machine.StringClassification.IsOperator(itr.Current.ToString().Trim()) && itr.Current.ToString() != "-" && imbalance == 0))
             {
-                view = input[index];
+                string s = itr.Current.ToString().Trim();
 
-                string s = view.ToString().Trim();
                 if (s == "(" || s == ")")
                 {
                     if (s == "(")
@@ -359,11 +357,9 @@ namespace Xamarin.Forms.MathDisplay
                     }
                     if (s == ")") imbalance--;
                 }
-
-                index--;
             }
 
-            return index + 1;
+            itr.MoveNext();
         }
         /*public static LinkedListNode<object> BeginningOfPreviousMathObject(this LinkedList<object> input, LinkedListNode<object> node)
         {

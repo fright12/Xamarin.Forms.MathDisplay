@@ -10,7 +10,7 @@ namespace Xamarin.Forms.MathDisplay
 {
     public class CursorView : BoxView
     {
-        public event EventHandler<ChangedEventArgs<Layout<View>>> ParentChanged;
+        private event EventHandler<ChangedEventArgs<Layout<View>>> ParentChanged;
 
         public new Expression Parent => base.Parent as Expression;
         //public double Middle => 0.5;

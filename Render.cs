@@ -1,13 +1,13 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
-using System.Text;
-
 using System.Extensions;
 using Crunch.Machine;
 
 namespace Xamarin.Forms.MathDisplay
 {
-    public class Reader : Crunch.Machine.Reader
+    public class Reader<T> : Crunch.Machine.Reader
+        where T : IList, new()
     {
         //private static Func<LinkedListNode<object>, LinkedListNode<object>> NextOperand = (node) =>
         private static LinkedListNode<object> NextOperand(LinkedListNode<object> node)
@@ -32,10 +32,10 @@ namespace Xamarin.Forms.MathDisplay
 
         static Reader()
         {
-            Instance = new Reader(
+            Instance = new Reader<T>(
                 new KeyValuePair<string, Operator>[2]
                 {
-                    new KeyValuePair<string, Operator>("√", UnaryOperator((o) => new RadicalViewModel { Radicand = Wrap(o, false) })),
+                    new KeyValuePair<string, Operator>("√", UnaryOperator((o) => new RadicalViewModel { Root = new T(), Radicand = Wrap(o, false) })),
                     new KeyValuePair<string, Operator>("_", UnaryOperator((o) => new ExpressionViewModel { Children = Wrap(o, false), TextFormat = TextFormatting.Subscript }))
                 },
                 new KeyValuePair<string, Operator>[2]
@@ -55,7 +55,7 @@ namespace Xamarin.Forms.MathDisplay
 
         private static object exponents(object o1, object o2)
         {
-            List<MathViewModel> exponent = Wrap(o2, false);
+            T exponent = Wrap(o2, false);
             
             if (exponent.Count == 1 && exponent[0] is FractionViewModel f)
             {
@@ -76,16 +76,15 @@ namespace Xamarin.Forms.MathDisplay
             });
         }
 
-        public static List<MathViewModel> Render(string str)
+        public static T Render(string str)
         {
             Print.Log("rendering " + str);
             return Wrap(Instance.Parse(str), false);
         }
 
-        public static List<MathViewModel> Wrap(object o, bool parend = true) => Wrap<List<MathViewModel>>(o, parend);
+        //public static List<MathViewModel> Wrap(object o, bool parend = true) => Wrap<List<MathViewModel>>(o, parend);
 
-        public static T Wrap<T>(object o, bool parend = true)
-            where T : System.Collections.IList, new()
+        public static T Wrap(object o, bool parend = true)
         {
             while (o is LinkedList<object> && (o as LinkedList<object>).First == (o as LinkedList<object>).Last && (o as LinkedList<object>).First.Value is LinkedList<object>)
             {
