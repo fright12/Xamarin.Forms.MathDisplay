@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-
+using Crunch.Machine;
 using Xamarin.Forms.Extensions;
 
 namespace Xamarin.Forms.MathDisplay
@@ -35,6 +35,6 @@ namespace Xamarin.Forms.MathDisplay
         //public void Format(double maxFontSize) => FontSize = maxFontSize;
 
         public string ToLatex() => ToString();
-        public override string ToString() => Crunch.Machine.StringClassification.Simple(Text);
+        public override string ToString() => Text?.Simple();// Crunch.Machine.StringClassification.Simple(Text);
     }
 }

@@ -8,17 +8,17 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-[assembly: global::Xamarin.Forms.Xaml.XamlResourceIdAttribute("Xamarin.Forms.MathDisplay.MathView.xaml", "MathView.xaml", typeof(global::Xamarin.Forms.MathDisplay.MathView))]
+[assembly: global::Xamarin.Forms.Xaml.XamlResourceIdAttribute("Xamarin.Forms.MathDisplay.MathTemplateSelector.xaml", "MathTemplateSelector.xaml", typeof(global::Xamarin.Forms.MathDisplay.MathTemplateSelector))]
 
 namespace Xamarin.Forms.MathDisplay {
     
     
-    [global::Xamarin.Forms.Xaml.XamlFilePathAttribute("MathView.xaml")]
-    public partial class MathView : global::Xamarin.Forms.ContentView {
+    [global::Xamarin.Forms.Xaml.XamlFilePathAttribute("MathTemplateSelector.xaml")]
+    public partial class MathTemplateSelector : global::Xamarin.Forms.MathDisplay.MathTemplateSelector {
         
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Xamarin.Forms.Build.Tasks.XamlG", "2.0.0.0")]
         private void InitializeComponent() {
-            global::Xamarin.Forms.Xaml.Extensions.LoadFromXaml(this, typeof(MathView));
+            global::Xamarin.Forms.Xaml.Extensions.LoadFromXaml(this, typeof(MathTemplateSelector));
         }
     }
 }

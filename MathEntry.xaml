@@ -6,15 +6,37 @@
                 xmlns:local="clr-namespace:Xamarin.Forms.MathDisplay;assembly=Xamarin.Forms.MathDisplay"
                 xmlns:ext="clr-namespace:Xamarin.Forms;assembly=Xamarin.Forms.Extensions"
                 mc:Ignorable="d"
-                x:Class="Xamarin.Forms.MathDisplay.MathEntry">
-    <AbsoluteLayout.BindingContext>
-        <local:MathEntryViewModel />
-    </AbsoluteLayout.BindingContext>
+                x:Class="Xamarin.Forms.MathDisplay.MathEntry"
+                x:DataType="local:MathEntryViewModel"
+                x:Name="this">
+    <VisualElement.Resources>
+        <local:CursorView x:Name="Cursor"
+                          x:Key="Cursor"
+                          BackgroundColor="{DynamicResource DetailColor}" />
 
-    <Entry AbsoluteLayout.LayoutBounds="0, 0, 1, 1"
+        <DataTemplate x:Key="CursorTemplate">
+            <x:Reference Name="Cursor" />
+        </DataTemplate>
+
+        <Style TargetType="local:Expression">
+            <Setter Property="BindableLayout.ItemTemplateSelector"
+                    Value="{Binding SymbolTemplateSelector, Source={x:Reference this}}" />
+        </Style>
+    </VisualElement.Resources>
+
+    <BindableObject.BindingContext>
+        <local:MathEntryViewModel />
+    </BindableObject.BindingContext>
+
+    <Entry x:Name="Entry"
+           Text="{Binding Text, Mode=TwoWay}"
+           InputTransparent="True"
+           AbsoluteLayout.LayoutBounds="0, 0, 1, 1"
            AbsoluteLayout.LayoutFlags="All" />
 
-    <local:Expression BindableLayout.ItemsSource="{Binding Children}"
-                      AbsoluteLayout.LayoutBounds="0.5, 0.5, -1, -1"
-                      AbsoluteLayout.LayoutFlags="PositionProportional" />
+    <local:MathView x:Name="MathView"
+                    Text="{Binding Text, Mode=TwoWay}"
+                    Margin="0, 10, 0, 10"
+                    AbsoluteLayout.LayoutBounds="0.5, 0.5, -1, -1"
+                    AbsoluteLayout.LayoutFlags="PositionProportional" />
 </AbsoluteLayout>

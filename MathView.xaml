@@ -1,62 +1,66 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
-<local:MathLayout xmlns="http://xamarin.com/schemas/2014/forms"
-                  xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-                  xmlns:d="http://xamarin.com/schemas/2014/forms/design"
-                  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-                  xmlns:local="clr-namespace:Xamarin.Forms.MathDisplay;assembly=Xamarin.Forms.MathDisplay"
-                  xmlns:ext="clr-namespace:Xamarin.Forms;assembly=Xamarin.Forms.Extensions"
-                  mc:Ignorable="d"
-                  x:Class="Xamarin.Forms.MathDisplay.Expression"
-                  Orientation="Horizontal"
-                  BindableLayout.ItemsSource="{Binding Text, Source={RelativeSource Self}}">
-    <BindableLayout.ItemTemplateSelector>
-        <local:MathElementTemplateSelector>
-            <local:MathElementTemplateSelector.TextTemplate>
-                <DataTemplate>
-                    <local:Text Text="{Binding Text}" />
-                </DataTemplate>
-            </local:MathElementTemplateSelector.TextTemplate>
+<ContentView xmlns="http://xamarin.com/schemas/2014/forms"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:d="http://xamarin.com/schemas/2014/forms/design"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:local="clr-namespace:Xamarin.Forms.MathDisplay;assembly=Xamarin.Forms.MathDisplay"
+             xmlns:ext="clr-namespace:Xamarin.Forms;assembly=Xamarin.Forms.Extensions"
+             mc:Ignorable="d"
+             x:Class="Xamarin.Forms.MathDisplay.MathView"
+             x:DataType="local:ExpressionViewModel">
+    <VisualElement.Resources>
+        <local:MathSymbolConverter x:Key="MathSymbolConverter" />
 
-            <local:MathElementTemplateSelector.ImageTextTemplate>
-                <DataTemplate>
-                    <local:ImageText HeightRequest="0"
-                                     Aspect="AspectFill">
-                        <local:ImageText.Source>
-                            <FontImageSource Glyph="{Binding Text}" />
-                        </local:ImageText.Source>
-                    </local:ImageText>
-                </DataTemplate>
-            </local:MathElementTemplateSelector.ImageTextTemplate>
+        <DataTemplate x:Key="TextTemplate">
+            <local:Text Text="{Binding Text, Converter={StaticResource MathSymbolConverter}}" />
+        </DataTemplate>
 
-            <local:MathElementTemplateSelector.ExpressionTemplate>
-                <DataTemplate>
-                    <local:Expression BindableLayout.ItemsSource="{Binding Children}" />
-                </DataTemplate>
-            </local:MathElementTemplateSelector.ExpressionTemplate>
+        <DataTemplate x:Key="ImageTextTemplate">
+            <local:ImageText HeightRequest="0"
+                             Aspect="AspectFill">
+                <local:ImageText.Source>
+                    <FontImageSource Glyph="{Binding Text}" />
+                </local:ImageText.Source>
+            </local:ImageText>
+        </DataTemplate>
 
-            <local:MathElementTemplateSelector.FractionTemplate>
-                <DataTemplate>
-                    <local:Fraction>
-                        <x:Arguments>
-                            <local:Expression BindableLayout.ItemsSource="{Binding Numerator}" />
+        <DataTemplate x:Key="ExpressionTemplate">
+            <local:Expression BindableLayout.ItemsSource="{Binding Children}"
+                              BindableLayout.ItemTemplateSelector="{StaticResource MathDataTemplateSelector}" />
+        </DataTemplate>
 
-                            <local:Expression BindableLayout.ItemsSource="{Binding Denominator}" />
-                        </x:Arguments>
-                    </local:Fraction>
-                </DataTemplate>
-            </local:MathElementTemplateSelector.FractionTemplate>
+        <DataTemplate x:Key="FractionTemplate">
+            <local:Fraction>
+                <x:Arguments>
+                    <local:Expression BindableLayout.ItemsSource="{Binding Numerator}"/>
 
-            <local:MathElementTemplateSelector.RadicalTemplate>
-                <DataTemplate>
-                    <local:Radical>
-                        <x:Arguments>
-                            <local:Expression BindableLayout.ItemsSource="{Binding Root}" />
-                            
-                            <local:Expression BindableLayout.ItemsSource="{Binding Radicand}" />
-                        </x:Arguments>
-                    </local:Radical>
-                </DataTemplate>
-            </local:MathElementTemplateSelector.RadicalTemplate>
-        </local:MathElementTemplateSelector>
-    </BindableLayout.ItemTemplateSelector>
-</local:MathLayout>
+                    <local:Expression BindableLayout.ItemsSource="{Binding Denominator}" />
+                </x:Arguments>
+            </local:Fraction>
+        </DataTemplate>
+
+        <DataTemplate x:Key="RadicalTemplate">
+            <local:Radical>
+                <x:Arguments>
+                    <local:Expression BindableLayout.ItemsSource="{Binding Root}" />
+
+                    <local:Expression BindableLayout.ItemsSource="{Binding Radicand}" />
+                </x:Arguments>
+            </local:Radical>
+        </DataTemplate>
+
+        <local:MathTemplateSelector x:Key="MathDataTemplateSelector"
+                                    TextTemplate="{StaticResource TextTemplate}"
+                                    ImageTextTemplate="{StaticResource ImageTextTemplate}"
+                                    ExpressionTemplate="{StaticResource ExpressionTemplate}"
+                                    FractionTemplate="{StaticResource FractionTemplate}"
+                                    RadicalTemplate="{StaticResource RadicalTemplate}" />
+
+        <Style TargetType="local:Expression">
+            <Setter Property="BindableLayout.ItemTemplateSelector"
+                    Value="{StaticResource MathDataTemplateSelector}" />
+        </Style>
+    </VisualElement.Resources>
+
+    <local:Expression BindableLayout.ItemsSource="{Binding Children}" />
+</ContentView>

@@ -16,16 +16,6 @@ namespace Xamarin.Forms.MathDisplay
         private static int Index;
         public static int RealIndex => Cursor.Parent == null ? 0 : Cursor.Index();
 
-        private static async void Blink()
-        {
-            while (true)
-            {
-                await Task.Delay(500);
-                Cursor.Opacity = 1 - Cursor.Opacity;
-                //Device.BeginInvokeOnMainThread(() => Cursor.IsVisible = false);
-            }
-        }
-
         static SoftKeyboard()
         {
             //Blink();
@@ -36,12 +26,12 @@ namespace Xamarin.Forms.MathDisplay
 
         public static void End(this Expression expression) => MoveCursor(expression, expression.Children.Count);
 
-        public static void Right() => move(1);
-        public static void Left() => move(-1);
+        //public static void Right() => move(1);
+        //public static void Left() => move(-1);
         public static bool Up() => MoveVertical(-1);
         public static bool Down() => MoveVertical(1);
 
-        public static void Type(string str)
+        /*public static void Type(string str)
         {
             Index = RealIndex;
             //Suround previous thing with parentheses if it's an exponent or a fraction
@@ -80,9 +70,9 @@ namespace Xamarin.Forms.MathDisplay
                 (list.Last() as MathLayout).InputContinuation.Add(Cursor);
                 Index = 0;
             }
-        }
+        }*/
 
-        public static bool Delete()
+        /*public static bool Delete()
         {
             Index = RealIndex;
             //print.log(index, Cursor.Parent.Children.Count, Cursor.Parent);
@@ -118,7 +108,7 @@ namespace Xamarin.Forms.MathDisplay
             }
 
             return true;
-        }
+        }*/
 
         private static bool MoveVertical(int direction)
         {
@@ -228,7 +218,7 @@ namespace Xamarin.Forms.MathDisplay
             return true;
         }
 
-        private static void move(int direction)
+        /*private static void move(int direction)
         {
             if (Cursor.Parent != null)
             {
@@ -241,7 +231,7 @@ namespace Xamarin.Forms.MathDisplay
                     parent.Insert(Index, Cursor);
                 }
             }
-        }
+        }*/
 
         private static Expression checkIndex(int direction, Expression startingParent)
         {
@@ -253,7 +243,7 @@ namespace Xamarin.Forms.MathDisplay
                 //Get the next thing
                 View next = parent.ChildInDirection(index - (direction + 1) / 2, direction);
                 //If it's a layout, go into it
-                if (next is Layout<View> && !(next is Expression && !(next as Expression).Editable))
+                if (next is Layout<View>)// && !(next is Expression && !(next as Expression).Editable))
                 {
                     parent = next as Layout<View>;
                     //I either want to be at the very beginning or the very end of the new layout, depending on which direction I'm going
@@ -269,7 +259,7 @@ namespace Xamarin.Forms.MathDisplay
                 if (!index.IsBetween(0, parent.ChildCount()))
                 {
                     //I can't go up because up isn't a layout or isn't editable - return to where I started
-                    if (!(parent.Parent is Layout<View>) || (parent.Parent is Expression && !(parent.Parent as Expression).Editable()))
+                    if (!(parent.Parent is Layout<View>) || parent.Parent is MathEntry)// (parent.Parent is Expression && !(parent.Parent as Expression).Editable()))
                     {
                         index -= direction;
                         return startingParent;
@@ -285,34 +275,25 @@ namespace Xamarin.Forms.MathDisplay
             return parent as Expression;
         }
 
-        public static void Trim(this Expression e)
+        /*public static void Trim(this Expression e)
         {
             while (e.Children.Count > 0 && e.Children[e.Children.Count - 1].ToString().Trim() == ")" && e.Children[0].ToString().Trim() == "(")
             {
                 e.RemoveAt(e.Children.Count - 1);
                 e.RemoveAt(0);
             }
-        }
-
-        public static void Trim(this IList list)
-        {
-            while (list.Count > 0 && list[list.Count - 1].ToString().Trim() == ")" && list[0].ToString().Trim() == "(")
-            {
-                list.RemoveAt(list.Count - 1);
-                list.RemoveAt(0);
-            }
-        }
+        }*/
     
-        public static void Fill(this Expression e, IList<View> input, int index)
+        /*public static void Fill(this Expression e, IList<View> input, int index)
         {
             int count = index - input.BeginningOfPreviousMathObject(index);
             for (int i = 0; i <= count; i++)
             {
                 e.Children.Add(input[index - count]);
             }
-        }
+        }*/
 
-        public static int BeginningOfPreviousMathObject(this IList<View> input, int index)
+        /*public static int BeginningOfPreviousMathObject(this IList<View> input, int index)
         {
             int imbalance = 0;
             View view = default;
@@ -337,57 +318,8 @@ namespace Xamarin.Forms.MathDisplay
             }
 
             return index + 1;
-        }
-
-        public static void BeginningOfPreviousMathObject(this IEditEnumerator itr)
-        {
-            int imbalance = 0;
-
-            //Grab stuff until we hit an operand
-            while (itr.MovePrev() && !(Crunch.Machine.StringClassification.IsOperator(itr.Current.ToString().Trim()) && itr.Current.ToString() != "-" && imbalance == 0))
-            {
-                string s = itr.Current.ToString().Trim();
-
-                if (s == "(" || s == ")")
-                {
-                    if (s == "(")
-                    {
-                        if (imbalance == 0) break;
-                        imbalance++;
-                    }
-                    if (s == ")") imbalance--;
-                }
-            }
-
-            itr.MoveNext();
-        }
-        /*public static LinkedListNode<object> BeginningOfPreviousMathObject(this LinkedList<object> input, LinkedListNode<object> node)
-        {
-            int imbalance = 0;
-            object view = default;
-
-            //Grab stuff until we hit an operand
-            while (node != null && !(Crunch.Machine.StringClassification.IsOperator(node.Value.ToString().Trim()) && node.Value.ToString() != "-" && imbalance == 0))
-            {
-                view = node.Value;
-
-                string s = view.ToString().Trim();
-                if (s == "(" || s == ")")
-                {
-                    if (s == "(")
-                    {
-                        if (imbalance == 0) break;
-                        imbalance++;
-                    }
-                    if (s == ")") imbalance--;
-                }
-
-                node = node.Previous;
-            }
-
-            return node?.Next ?? input.First;
         }*/
-
+        
         public static View ChildInDirection(this Layout<View> parent, int index, int direction)
         {
             if ((index + direction).IsBetween(0, parent.Children.Count - 1))
@@ -436,6 +368,6 @@ namespace Xamarin.Forms.MathDisplay
             //return index - layout.HideCursor(index).ToInt();
         }
 
-        public static bool Editable(this Layout<View> layout) => layout is Expression && (layout as Expression).Editable;
+        //public static bool Editable(this Layout layout) => layout is Expression && (layout as Expression).Editable;
     }
 }
