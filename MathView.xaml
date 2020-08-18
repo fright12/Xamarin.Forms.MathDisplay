@@ -6,8 +6,7 @@
              xmlns:local="clr-namespace:Xamarin.Forms.MathDisplay;assembly=Xamarin.Forms.MathDisplay"
              xmlns:ext="clr-namespace:Xamarin.Forms;assembly=Xamarin.Forms.Extensions"
              mc:Ignorable="d"
-             x:Class="Xamarin.Forms.MathDisplay.MathView"
-             x:DataType="local:ExpressionViewModel">
+             x:Class="Xamarin.Forms.MathDisplay.MathView">
     <VisualElement.Resources>
         <local:MathSymbolConverter x:Key="MathSymbolConverter" />
 

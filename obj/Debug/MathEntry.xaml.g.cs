@@ -20,9 +20,6 @@ namespace Xamarin.Forms.MathDisplay {
         private global::Xamarin.Forms.AbsoluteLayout @this;
         
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Xamarin.Forms.Build.Tasks.XamlG", "2.0.0.0")]
-        private global::Xamarin.Forms.MathDisplay.CursorView Cursor;
-        
-        [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Xamarin.Forms.Build.Tasks.XamlG", "2.0.0.0")]
         private global::Xamarin.Forms.Entry Entry;
         
         [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Xamarin.Forms.Build.Tasks.XamlG", "2.0.0.0")]
@@ -32,7 +29,6 @@ namespace Xamarin.Forms.MathDisplay {
         private void InitializeComponent() {
             global::Xamarin.Forms.Xaml.Extensions.LoadFromXaml(this, typeof(MathEntry));
             @this = global::Xamarin.Forms.NameScopeExtensions.FindByName<global::Xamarin.Forms.AbsoluteLayout>(this, "this");
-            Cursor = global::Xamarin.Forms.NameScopeExtensions.FindByName<global::Xamarin.Forms.MathDisplay.CursorView>(this, "Cursor");
             Entry = global::Xamarin.Forms.NameScopeExtensions.FindByName<global::Xamarin.Forms.Entry>(this, "Entry");
             MathView = global::Xamarin.Forms.NameScopeExtensions.FindByName<global::Xamarin.Forms.MathDisplay.MathView>(this, "MathView");
         }
