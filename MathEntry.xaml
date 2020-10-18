@@ -24,11 +24,12 @@
     </VisualElement.Resources>
 
     <BindableObject.BindingContext>
-        <local:MathEntryViewModel />
+        <local:MathEntryViewModel x:Name="MathEntryModel" />
     </BindableObject.BindingContext>
 
     <Entry x:Name="Entry"
            Text="{Binding Text, Mode=TwoWay}"
+           TextColor="Transparent"
            InputTransparent="True"
            AbsoluteLayout.LayoutBounds="0, 0, 1, 1"
            AbsoluteLayout.LayoutFlags="All" />
