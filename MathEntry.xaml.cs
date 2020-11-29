@@ -27,83 +27,33 @@ namespace Xamarin.Forms.MathDisplay
 
         public Expression Expression => MathView.Content;
 
-        private CursorView Cursor => (CursorView)Resources["Cursor"];
-        private CursorViewModel CursorModel;
+        private readonly object CursorObject = "|";
         private int LocalIndex = 0;
 
         public MathEntry()
         {
             InitializeComponent();
 
-            ((MathTemplateSelector)MathView.Resources["MathDataTemplateSelector"]).Cursor = Cursor;
+            CursorView cursor = (CursorView)Resources["Cursor"];
+            ((MathTemplateSelector)MathView.Resources["MathDataTemplateSelector"]).Cursor = cursor;
             //(BindingContext as MathEntryViewModel).Children.Add(CursorObject);
             //(BindingContext as MathEntryViewModel).CursorPosition--;
 
-            Cursor.MeasureInvalidated += (sender, e) => Cursor.HeightRequest = MathDisplay.Text.MaxTextHeight * ((Cursor as View).Parent as Expression).FontSize / MathDisplay.Text.MaxFontSize;
+            cursor.MeasureInvalidated += (sender, e) => cursor.HeightRequest = MathDisplay.Text.MaxTextHeight * ((cursor as View).Parent as Expression).FontSize / MathDisplay.Text.MaxFontSize;
             this.SetBinding(TextProperty, "Text", BindingMode.TwoWay);
             //Cursor.SetBinding(IsVisibleProperty, "Focused");
-
-            MathEntryViewModel entry = (MathEntryViewModel)BindingContext;
-            CursorModel = new CursorViewModel(new Node());
-
-            MathView.Content.Children.Add(Cursor);
-            //entry.CursorMoved += CursorPositionChanged;
-            //CursorPositionChanged(entry, new ChangedEventArgs<int>(0, 0));
         }
 
-        private void CursorPositionChanged(object sender, ChangedEventArgs<int> e)
-        {
-            /*if (e.PropertyName != MathEntryViewModel.CursorPositionProperty.PropertyName)
-            {
-                return;
-            }*/
-
-            if (MathEntryModel.Text.Length == 0 || MathEntryModel.IndexOf(CursorModel) != e.NewValue)
-            //if (MathEntryModel.Current != CursorModel)
-            {
-                MathEntryModel.CursorMoved -= CursorPositionChanged;
-
-                MathEntryModel.CursorPosition = e.OldValue + 1;
-                MathEntryModel.Delete();
-                MathEntryModel.CursorPosition = e.NewValue;
-                MathEntryModel.Insert(CursorModel);
-                MathEntryModel.CursorPosition--;
-
-                MathEntryModel.CursorMoved += CursorPositionChanged;
-            }
-        }
-
-        /*private void CursorPositionChanging(object sender, PropertyChangingEventArgs e)
-        {
-            if (e.PropertyName != MathEntryViewModel.CursorPositionProperty.PropertyName || MathEntryModel.Current == CursorModel)
-            {
-                return;
-            }
-
-            //MathEntryModel.Remove(CursorModel, MathEntryModel.CursorPosition);
-            //MathEntryModel.Delete();
-            MathEntryModel.PropertyChanged += CursorPositionChanged;
-        }
-
-        private void CursorPositionChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
-        {
-            MathEntryModel.PropertyChanging -= CursorPositionChanging;
-            MathEntryModel.PropertyChanged -= CursorPositionChanged;
-
-            MathEntryModel.Insert(CursorModel);
-            MathEntryModel.CursorPosition--;
-
-            MathEntryModel.PropertyChanging += CursorPositionChanging;
-        }*/
+        private int LastCursorPosition = 0;
 
         protected override void OnBindingContextChanged()
         {
             base.OnBindingContextChanged();
-            return;
+
             if (BindingContext is MathEntryViewModel entry)
             {
                 //entry.Children.Add(CursorObject);
-                entry.CursorMoved += (sender, e) =>
+                entry.CursorPositionChanging += (sender, e) =>
                 {
 
                 };

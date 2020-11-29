@@ -2,7 +2,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Extensions;
-using System.Linq;
 using Crunch.Machine;
 
 namespace Xamarin.Forms.MathDisplay
@@ -86,11 +85,10 @@ namespace Xamarin.Forms.MathDisplay
         private static Node<object> Convert(T t)
         {
             Node<object> node = new Node<object>();
-
-            node.Children = t.Count == 0 ? new LinkedList<Node<object>>() : new LinkedList<Node<object>>(t.OfType<Node<object>>());
-            node.Children.AddFirst(new Node<object>("("));
-            node.Children.AddLast(new Node<object>(")"));
-
+            if (t.Count > 0)
+            {
+                node.SetChildren(t);
+            }
             return node;
         }
 
