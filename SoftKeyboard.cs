@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Extensions;
 using System.Linq;
@@ -294,12 +293,12 @@ namespace Xamarin.Forms.MathDisplay
             }
         }
 
-        public static void Trim(this IList list)
+        public static void Trim(this ExpressionViewModel e)
         {
-            while (list.Count > 0 && list[list.Count - 1].ToString().Trim() == ")" && list[0].ToString().Trim() == "(")
+            while (e.Children.Count > 0 && e.Children[e.Children.Count - 1].ToString().Trim() == ")" && e.Children[0].ToString().Trim() == "(")
             {
-                list.RemoveAt(list.Count - 1);
-                list.RemoveAt(0);
+                e.Children.RemoveAt(e.Children.Count - 1);
+                e.Children.RemoveAt(0);
             }
         }
     
@@ -311,6 +310,18 @@ namespace Xamarin.Forms.MathDisplay
                 e.Children.Add(input[index - count]);
             }
         }
+
+        /*public static void Fill(this ExpressionViewModel e, IList<MathViewModel> input, int index)
+        {
+            int count = index - input.BeginningOfPreviousMathObject(index);
+            for (int i = 0; i <= count; i++)
+            {
+                MathViewModel mvm = input[index - count];
+
+                mvm.Parent.Children.Remove(mvm);
+                e.Children.Add(mvm);
+            }
+        }*/
 
         public static int BeginningOfPreviousMathObject(this IList<View> input, int index)
         {
@@ -339,36 +350,10 @@ namespace Xamarin.Forms.MathDisplay
             return index + 1;
         }
 
-        public static int BeginningOfPreviousMathObject(this IList input, int index)
+        public static LinkedListNode<MathViewModel> BeginningOfPreviousMathObject(this LinkedList<MathViewModel> input, LinkedListNode<MathViewModel> node)
         {
             int imbalance = 0;
-            object view = null;
-
-            //Grab stuff until we hit an operand
-            while (index.IsBetween(0, input.Count - 1) && !(Crunch.Machine.StringClassification.IsOperator(input[index].ToString().Trim()) && input[index].ToString() != "-" && imbalance == 0))
-            {
-                view = input[index];
-
-                string s = view.ToString().Trim();
-                if (s == "(" || s == ")")
-                {
-                    if (s == "(")
-                    {
-                        if (imbalance == 0) break;
-                        imbalance++;
-                    }
-                    if (s == ")") imbalance--;
-                }
-
-                index--;
-            }
-
-            return index + 1;
-        }
-        /*public static LinkedListNode<object> BeginningOfPreviousMathObject(this LinkedList<object> input, LinkedListNode<object> node)
-        {
-            int imbalance = 0;
-            object view = default;
+            MathViewModel view = default;
 
             //Grab stuff until we hit an operand
             while (node != null && !(Crunch.Machine.StringClassification.IsOperator(node.Value.ToString().Trim()) && node.Value.ToString() != "-" && imbalance == 0))
@@ -390,7 +375,7 @@ namespace Xamarin.Forms.MathDisplay
             }
 
             return node?.Next ?? input.First;
-        }*/
+        }
 
         public static View ChildInDirection(this Layout<View> parent, int index, int direction)
         {

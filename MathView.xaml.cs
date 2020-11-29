@@ -9,30 +9,6 @@ using Xamarin.Forms.Xaml;
 
 namespace Xamarin.Forms.MathDisplay
 {
-    [ContentProperty(nameof(Templates))]
-    public class DictionaryTemplateSelector : DataTemplateSelector
-    {
-        public IDictionary<Type, DataTemplate> Templates { get; set; } = new Dictionary<Type, DataTemplate>();
-
-        public DataTemplate DefaultTemplate { get; set; } = new DataTemplate(() =>
-        {
-            Label label = new Label();
-            label.SetBinding(Label.TextProperty, ".");
-            return label;
-        });
-
-        protected override DataTemplate OnSelectTemplate(object item, BindableObject container)
-        {
-            DataTemplate template;
-            if (Templates.TryGetValue(item.GetType(), out template))
-            {
-                return template;
-            }
-
-            return DefaultTemplate;
-        }
-    }
-
     public class MathElementTemplateSelector : DataTemplateSelector
     {
         public DataTemplate TextTemplate { get; set; }

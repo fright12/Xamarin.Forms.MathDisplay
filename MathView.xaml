@@ -38,9 +38,9 @@
                 <DataTemplate>
                     <local:Fraction>
                         <x:Arguments>
-                            <local:Expression BindableLayout.ItemsSource="{Binding Numerator}" />
+                            <local:Expression BindableLayout.ItemsSource="{Binding Numerator.Children}" />
 
-                            <local:Expression BindableLayout.ItemsSource="{Binding Denominator}" />
+                            <local:Expression BindableLayout.ItemsSource="{Binding Denominator.Children}" />
                         </x:Arguments>
                     </local:Fraction>
                 </DataTemplate>

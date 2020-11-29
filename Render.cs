@@ -35,8 +35,8 @@ namespace Xamarin.Forms.MathDisplay
             Instance = new Reader(
                 new KeyValuePair<string, Operator>[2]
                 {
-                    new KeyValuePair<string, Operator>("√", UnaryOperator((o) => new RadicalViewModel { Radicand = Wrap(o, false) })),
-                    new KeyValuePair<string, Operator>("_", UnaryOperator((o) => new ExpressionViewModel { Children = Wrap(o, false), TextFormat = TextFormatting.Subscript }))
+                    new KeyValuePair<string, Operator>("√", UnaryOperator((o) => new RadicalViewModel { Radicand = new ExpressionViewModel(Wrap(o, false)) })),
+                    new KeyValuePair<string, Operator>("_", UnaryOperator((o) => new ExpressionViewModel(TextFormatting.Subscript, Wrap(o, false))))
                 },
                 new KeyValuePair<string, Operator>[2]
                 {
@@ -45,7 +45,7 @@ namespace Xamarin.Forms.MathDisplay
                 },
                 new KeyValuePair<string, Operator>[1]
                 {
-                    new KeyValuePair<string, Operator>("/", BinaryOperator((o1, o2) => new FractionViewModel { Numerator = Wrap(o1, false), Denominator = Wrap(o2, false) }))
+                    new KeyValuePair<string, Operator>("/", BinaryOperator((o1, o2) => new FractionViewModel()))// { Numerator = new ExpressionViewModel(Wrap(o1, false)), Denominator = new ExpressionViewModel(Wrap(o2, false)) }))
                 }
             );
         }
@@ -55,37 +55,33 @@ namespace Xamarin.Forms.MathDisplay
 
         private static object exponents(object o1, object o2)
         {
-            List<MathViewModel> exponent = Wrap(o2, false);
+            MathViewModel[] exponent = Wrap(o2, false);
             
-            if (exponent.Count == 1 && exponent[0] is FractionViewModel f)
+            if (exponent.Length == 1 && exponent[0] is FractionViewModel f)
             {
                 if (f.Numerator.ToString() == "(1)")
                 {
                     return new RadicalViewModel
                     {
-                        Root = Render(f.Denominator.ToString()),
-                        Radicand = Wrap(o1, false)
+                        Root = new ExpressionViewModel
+                        {
+                            Text = f.Denominator.ToString()
+                        },
+                        Radicand = new ExpressionViewModel(Wrap(o1, false))
                     };
                 }
             }
 
-            return new LinkedList<object>().Populate(o1, new ExpressionViewModel
-            {
-                Children = exponent,
-                TextFormat = TextFormatting.Superscript
-            });
+            return new LinkedList<object>().Populate(o1, new ExpressionViewModel(TextFormatting.Superscript, exponent));
         }
 
-        public static List<MathViewModel> Render(string str)
+        public static MathViewModel[] Render(string str)
         {
             Print.Log("rendering " + str);
             return Wrap(Instance.Parse(str), false);
         }
 
-        public static List<MathViewModel> Wrap(object o, bool parend = true) => Wrap<List<MathViewModel>>(o, parend);
-
-        public static T Wrap<T>(object o, bool parend = true)
-            where T : System.Collections.IList, new()
+        public static MathViewModel[] Wrap(object o, bool parend = true)
         {
             while (o is LinkedList<object> && (o as LinkedList<object>).First == (o as LinkedList<object>).Last && (o as LinkedList<object>).First.Value is LinkedList<object>)
             {
@@ -95,11 +91,11 @@ namespace Xamarin.Forms.MathDisplay
             MathViewModel view = null;
             if (o == null)
             {
-                return new T();
+                return new MathViewModel[0];
             }
             else if (o is LinkedList<object> ll)
             {
-                T list = new T();
+                List<MathViewModel> list = new List<MathViewModel>();
                 if (ll.Last.Value is ExpressionViewModel expression && expression.TextFormat == TextFormatting.Superscript)
                 {
                     parend = false;
@@ -117,11 +113,11 @@ namespace Xamarin.Forms.MathDisplay
 
                 if (parend)
                 {
-                    list.Insert(0, MathEntryViewModel.LeftParenthesis);
-                    list.Add(MathEntryViewModel.RightParenthesis);
+                    list.Insert(0, MathEntryViewModel.LeftParenthesis());
+                    list.Add(MathEntryViewModel.RightParenthesis());
                 }
 
-                return list;
+                return list.ToArray();
             }
             else if (o is MathViewModel)
             {
@@ -138,7 +134,7 @@ namespace Xamarin.Forms.MathDisplay
                 }
                 else
                 {
-                    T views = new T();
+                    List<MathViewModel> views = new List<MathViewModel>();
                     foreach (char chr in str)
                     {
                         char c = chr;
@@ -149,11 +145,11 @@ namespace Xamarin.Forms.MathDisplay
                         }
                         views.Add(new TextViewModel { Text = pad + c + pad });
                     }
-                    return views;
+                    return views.ToArray();
                 }
             }
 
-            return new T { view };
+            return new MathViewModel[] { view };
         }
     }
 }
