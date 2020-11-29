@@ -82,6 +82,8 @@ namespace Xamarin.Forms.MathDisplay
             return Wrap(Instance.Parse(str), false);
         }
 
+        //public static List<MathViewModel> Wrap(object o, bool parend = true) => Wrap<List<MathViewModel>>(o, parend);
+
         public static T Wrap(object o, bool parend = true)
         {
             while (o is LinkedList<object> && (o as LinkedList<object>).First == (o as LinkedList<object>).Last && (o as LinkedList<object>).First.Value is LinkedList<object>)
@@ -138,13 +140,13 @@ namespace Xamarin.Forms.MathDisplay
                     T views = new T();
                     foreach (char chr in str)
                     {
-                        /*char c = chr;
+                        char c = chr;
                         string pad = (c == '*' || c == '+' || c == '=') ? " " : "";
                         if (c == '*')
                         {
                             c = '×';
-                        }*/
-                        views.Add(new TextViewModel { Text = chr.ToString() });
+                        }
+                        views.Add(new TextViewModel { Text = pad + c + pad });
                     }
                     return views;
                 }

@@ -74,4 +74,3 @@ C:\Users\Flint\Documents\Calculator Stuff\Xamarin.Forms.MathDisplay\bin\Debug\Xa
 C:\Users\Flint\Documents\Calculator Stuff\Xamarin.Forms.MathDisplay\bin\Debug\Xamarin.Forms.Xaml.xml
 C:\Users\Flint\Documents\Calculator Stuff\Xamarin.Forms.MathDisplay\obj\Debug\XamlC.stamp
 C:\Users\Flint\Documents\Calculator Stuff\Xamarin.Forms.MathDisplay\obj\Debug\Xamarin.Forms.MathDisplay.csproj.CopyComplete
-C:\Users\Flint\Documents\Calculator Stuff\Xamarin.Forms.MathDisplay\obj\Debug\Expression.xaml.g.cs

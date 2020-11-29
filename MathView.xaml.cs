@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -10,35 +9,6 @@ using Xamarin.Forms.Xaml;
 
 namespace Xamarin.Forms.MathDisplay
 {
-    [XamlCompilation(XamlCompilationOptions.Compile)]
-    public partial class MathView : ContentView
-    {
-        public static readonly BindableProperty TextProperty = BindableProperty.Create(nameof(Text), typeof(string), typeof(Expression));
-
-        public string Text
-        {
-            get => (string)GetValue(TextProperty);
-            set => SetValue(TextProperty, value);
-        }
-
-        public double FontSize
-        {
-            get => Content.FontSize;
-            set => Content.FontSize = value;
-        }
-
-        new public Expression Content => base.Content as Expression;
-
-        public MathView()
-        {
-            InitializeComponent();
-
-            this.SetBinding(TextProperty, Content.BindingContext, "Text", mode: BindingMode.TwoWay);
-        }
-
-        public override string ToString() => Content?.ToString() ?? base.ToString();
-    }
-
     [ContentProperty(nameof(Templates))]
     public class DictionaryTemplateSelector : DataTemplateSelector
     {
@@ -63,67 +33,30 @@ namespace Xamarin.Forms.MathDisplay
         }
     }
 
-    public class MathSymbolConverter : IValueConverter
+    public class MathElementTemplateSelector : DataTemplateSelector
     {
-        private readonly Dictionary<string, string> Map = new Dictionary<string, string>
-        {
-            ["*"] = " × ",
-            ["+"] = " + ",
-            ["="] = " = ",
-        };
-
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            string converted;
-            if (value is string str && Map.TryGetValue(str, out converted))
-            {
-                return converted;
-            }
-
-            return value;
-        }
-
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => value;
-    }
-
-    public class MathTemplateSelector : DataTemplateSelector
-    {
-        public DataTemplate DefaultTemplate { get; set; }
-
         public DataTemplate TextTemplate { get; set; }
         public DataTemplate ImageTextTemplate { get; set; }
 
         public DataTemplate ExpressionTemplate { get; set; }
         public DataTemplate FractionTemplate { get; set; }
         public DataTemplate RadicalTemplate { get; set; }
+        private DataTemplate CursorTemplate { get; set; }
 
-        public CursorView Cursor { get; set; }
-        private DataTemplate CursorTemplate;
+        private readonly CursorView Cursor;
 
-        public MathTemplateSelector()
+        public MathElementTemplateSelector()
         {
+            Cursor = new CursorView();
+            Cursor.SetDynamicResource(VisualElement.BackgroundColorProperty, "DetailColor");
+            Cursor.MeasureInvalidated += (sender, e) => Cursor.HeightRequest = Text.MaxTextHeight * ((Cursor as View).Parent as Expression).FontSize / Text.MaxFontSize;
+
             CursorTemplate = new DataTemplate(() => Cursor);
         }
 
         protected override DataTemplate OnSelectTemplate(object item, BindableObject container)
         {
-            if (item.ToString() == "|")
-            {
-                return CursorTemplate;
-            }
-
-            if (item is TextViewModel text)
-            {
-                if (text.Text == "(" || text.Text == ")" || text.Text == "sqrt")
-                {
-                    return ImageTextTemplate;
-                }
-                else
-                {
-                    return TextTemplate;
-                }
-            }
-            else if (item is ExpressionViewModel)
+            if (item is ExpressionViewModel)
             {
                 return ExpressionTemplate;
             }
@@ -135,9 +68,17 @@ namespace Xamarin.Forms.MathDisplay
             {
                 return RadicalTemplate;
             }
+            else if (item is CursorViewModel)
+            {
+                return CursorTemplate;
+            }
+            else if (item is ImageTextViewModel)
+            {
+                return ImageTextTemplate;
+            }
             else
             {
-                return DefaultTemplate;
+                return TextTemplate;
             }
         }
     }
