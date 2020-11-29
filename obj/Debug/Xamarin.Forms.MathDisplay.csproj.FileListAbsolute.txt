@@ -31,6 +31,9 @@ C:\Users\Flint\Documents\Calculator Stuff\Crunch.GraphX\obj\Debug\XamlC.stamp
 C:\Users\Flint\Documents\Calculator Stuff\Crunch.GraphX\obj\Debug\Xamarin.Forms.MathDisplay.csproj.CopyComplete
 C:\Users\Flint\Documents\Calculator Stuff\Crunch.GraphX\obj\Debug\Xamarin.Forms.MathDisplay.dll
 C:\Users\Flint\Documents\Calculator Stuff\Crunch.GraphX\obj\Debug\Xamarin.Forms.MathDisplay.pdb
+C:\Users\Flint\Documents\Calculator Stuff\Xamarin.Forms.MathDisplay\obj\Debug\Xamarin.Forms.MathDisplay.csprojAssemblyReference.cache
+C:\Users\Flint\Documents\Calculator Stuff\Xamarin.Forms.MathDisplay\obj\Debug\Xamarin.Forms.MathDisplay.csproj.CoreCompileInputs.cache
+C:\Users\Flint\Documents\Calculator Stuff\Xamarin.Forms.MathDisplay\bin\Debug\Xamarin.Forms.MathDisplay.dll.config
 C:\Users\Flint\Documents\Calculator Stuff\Xamarin.Forms.MathDisplay\bin\Debug\Xamarin.Forms.MathDisplay.dll
 C:\Users\Flint\Documents\Calculator Stuff\Xamarin.Forms.MathDisplay\bin\Debug\Xamarin.Forms.MathDisplay.pdb
 C:\Users\Flint\Documents\Calculator Stuff\Xamarin.Forms.MathDisplay\bin\Debug\System.Data.Common.dll
@@ -53,14 +56,13 @@ C:\Users\Flint\Documents\Calculator Stuff\Xamarin.Forms.MathDisplay\bin\Debug\Xa
 C:\Users\Flint\Documents\Calculator Stuff\Xamarin.Forms.MathDisplay\bin\Debug\Xamarin.Forms.Xaml.dll
 C:\Users\Flint\Documents\Calculator Stuff\Xamarin.Forms.MathDisplay\bin\Debug\System.Extensions.pdb
 C:\Users\Flint\Documents\Calculator Stuff\Xamarin.Forms.MathDisplay\bin\Debug\Xamarin.Forms.Extensions.pdb
+C:\Users\Flint\Documents\Calculator Stuff\Xamarin.Forms.MathDisplay\bin\Debug\Xamarin.Forms.Extensions.dll.config
 C:\Users\Flint\Documents\Calculator Stuff\Xamarin.Forms.MathDisplay\bin\Debug\Crunch.Machine.pdb
+C:\Users\Flint\Documents\Calculator Stuff\Xamarin.Forms.MathDisplay\bin\Debug\Crunch.Machine.dll.config
 C:\Users\Flint\Documents\Calculator Stuff\Xamarin.Forms.MathDisplay\bin\Debug\Xamarin.Forms.Core.pdb
 C:\Users\Flint\Documents\Calculator Stuff\Xamarin.Forms.MathDisplay\bin\Debug\Xamarin.Forms.Core.xml
 C:\Users\Flint\Documents\Calculator Stuff\Xamarin.Forms.MathDisplay\bin\Debug\Xamarin.Forms.Xaml.pdb
 C:\Users\Flint\Documents\Calculator Stuff\Xamarin.Forms.MathDisplay\bin\Debug\Xamarin.Forms.Xaml.xml
-C:\Users\Flint\Documents\Calculator Stuff\Xamarin.Forms.MathDisplay\obj\Debug\Xamarin.Forms.MathDisplay.csprojAssemblyReference.cache
-C:\Users\Flint\Documents\Calculator Stuff\Xamarin.Forms.MathDisplay\obj\Debug\Xamarin.Forms.MathDisplay.csproj.CoreCompileInputs.cache
-C:\Users\Flint\Documents\Calculator Stuff\Xamarin.Forms.MathDisplay\obj\Debug\XamlC.stamp
 C:\Users\Flint\Documents\Calculator Stuff\Xamarin.Forms.MathDisplay\obj\Debug\Xamarin.Forms.MathDisplay.csproj.CopyComplete
 C:\Users\Flint\Documents\Calculator Stuff\Xamarin.Forms.MathDisplay\obj\Debug\Xamarin.Forms.MathDisplay.dll
 C:\Users\Flint\Documents\Calculator Stuff\Xamarin.Forms.MathDisplay\obj\Debug\Xamarin.Forms.MathDisplay.pdb

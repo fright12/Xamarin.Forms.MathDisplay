@@ -24,7 +24,7 @@ namespace Xamarin.Forms.MathDisplay
                 Operand.FontSize = value;
                 Root.FontSize = value * Text.FontSizeDecrease;
 
-                RadicalSign.WidthRequest = Math.Floor(RadicalWidth);
+                RadicalSign.WidthRequest = Math.Ceiling(RadicalWidth);
                 AbsoluteLayout.SetLayoutBounds(RadicalSign.Parent, new Rectangle(0, 0, RadicalWidth * 0.5, 1));
             }
         }
@@ -58,18 +58,20 @@ namespace Xamarin.Forms.MathDisplay
                 HorizontalOptions = LayoutOptions.Center,
                 Spacing = 0
             };
-            BarOperand.Children.Add(new BoxView()
+            BoxView topBar;
+            BarOperand.Children.Add(topBar = new BoxView()
             {
-                HeightRequest = 3,
-                WidthRequest = 0,
-                BackgroundColor = Color.Gray
+                HeightRequest = 2,
+                WidthRequest = 0
             });
+            topBar.SetBinding(BoxView.ColorProperty, this, "TextColor");
             BarOperand.Children.Add(Operand = new Expression(children));
 
             //*******       / *******
             //*******  __  /  *******
             //*******    \/   *******
             RadicalSign = Text.CreateRadical();
+            ((RadicalSign as Image).Source as FontImageSource).SetBinding(FontImageSource.ColorProperty, this, "TextColor");
             MaxRadicalWidth = RadicalSign.Measure().Width;
 
             AbsoluteLayout RadicalContainer = new AbsoluteLayout()

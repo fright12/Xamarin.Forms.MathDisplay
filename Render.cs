@@ -9,7 +9,8 @@ namespace Xamarin.Forms.MathDisplay
 {
     public class Reader : Crunch.Machine.Reader
     {
-        private static Func<LinkedListNode<object>, LinkedListNode<object>> NextOperand = (node) =>
+        //private static Func<LinkedListNode<object>, LinkedListNode<object>> NextOperand = (node) =>
+        private static LinkedListNode<object> NextOperand(LinkedListNode<object> node)
         {
             if (node.Next != null && node.Next.Value.ToString() == "-")
             {
@@ -24,7 +25,7 @@ namespace Xamarin.Forms.MathDisplay
             }
 
             return node.Next;
-        };
+        }
 
         public Reader(params KeyValuePair<string, Operator>[][] data) : base(data) { }
         private static Reader Instance;
@@ -34,7 +35,7 @@ namespace Xamarin.Forms.MathDisplay
             Instance = new Reader(
                 new KeyValuePair<string, Operator>[2]
                 {
-                    new KeyValuePair<string, Operator>("sqrt", UnaryOperator((o) => new Radical(Wrap(o, false)))),
+                    new KeyValuePair<string, Operator>("√", UnaryOperator((o) => new Radical(Wrap(o, false)))),
                     new KeyValuePair<string, Operator>("_", UnaryOperator((o) => new Expression(TextFormatting.Subscript, Wrap(o, false))))
                 },
                 new KeyValuePair<string, Operator>[2]

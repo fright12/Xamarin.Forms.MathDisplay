@@ -37,9 +37,11 @@ namespace Xamarin.Forms.MathDisplay
             Spacing = 0;
 
             Numerator = toExpression(numerator);
+            BoxView bar = Bar;
+            bar.SetBinding(BoxView.ColorProperty, this, "TextColor");
             Denominator = toExpression(denominator);
             
-            Children.AddRange(Numerator, Bar, Denominator);
+            Children.Add(Numerator, bar, Denominator);
         }
 
         public override void Lyse() => Lyse(Numerator, Denominator);

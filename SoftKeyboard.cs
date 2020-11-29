@@ -20,32 +20,19 @@ namespace Xamarin.Forms.MathDisplay
         {
             Cursor = new CursorView();
             Cursor.MeasureInvalidated += (sender, e) => Cursor.HeightRequest = Text.MaxTextHeight * Cursor.Parent.FontSize / Text.MaxFontSize;
-            /*Cursor.ParentChanged += (sender, e) =>
-            {
-                print.log("cursor parent changed", e.OldValue, e.NewValue);
-                if (e.OldValue != null)
-                {
-                    e.OldValue.ChildAdded -= ParentListener;
-                    e.OldValue.ChildRemoved -= ParentListener;
-                }
-                if (e.NewValue != null)
-                {
-                    e.NewValue.ChildAdded += ParentListener;
-                    e.NewValue.ChildRemoved += ParentListener;
-                }
-            };*/
         }
 
-        /*private static bool SafeInsert = false;
-
-        private static void ParentListener(object sender, ElementEventArgs e)
+        private static async void Blink()
         {
-            if (e.Element != Cursor && !SafeInsert)
+            while (true)
             {
-                print.log("alskjdf;lkjsad", Cursor.Parent, Cursor.Index());
-                //Index = Cursor.Index();
+                await System.Threading.Tasks.Task.Delay(500);
+                Cursor.Opacity = 1 - Cursor.Opacity;
+                //Device.BeginInvokeOnMainThread(() => Cursor.IsVisible = false);
             }
-        }*/
+        }
+
+        public static void End(this Expression expression) => MoveCursor(expression, expression.Children.Count);
 
         public static void Type(string str)
         {
@@ -139,7 +126,7 @@ namespace Xamarin.Forms.MathDisplay
             View parent = Cursor.Parent;
             while (true)
             {
-                if (parent.Parent is Fraction)
+                if (parent?.Parent is Fraction)
                 {
                     int index = parent.Index() + direction * 2;
                     if (index.IsBetween(0, 2))
@@ -154,7 +141,7 @@ namespace Xamarin.Forms.MathDisplay
                     }
                 }
 
-                parent = parent.Parent as View;
+                parent = parent?.Parent as View;
                 if (parent == null)
                 {
                     return false;
@@ -221,263 +208,7 @@ namespace Xamarin.Forms.MathDisplay
             }
         }
 
-        /*private static bool Center(Expression root, double target, double offset, int direction, int a)
-        {
-            /*if (target >= offset + root.Width)
-            {
-                return MoveCursor(root, root.Children.Count);
-            }
-            else if (target <= offset)
-            {
-                return MoveCursor(root, 0);
-            }
-
-            //Expression e = root;
-            //;
-            Tuple<Expression, int> last = new Tuple<Expression, int>(root, Index = root.Children.Count * (direction - 1) / -2);
-            Expression e = root;
-            double left = offset + Position(root, Index);
-            double right;
-            //while (Index != root.Children.Count * (direction + 1) / 2)
-            //while (true)
-            do
-            {
-                //int index = Index;
-                //Expression prev = e;
-                e = checkIndex(direction, e);
-                if (e == null)
-                {
-                    return false;
-                }
-
-                right = offset;
-                if (e != root)
-                {
-                    right += e.PositionOn(root).X;
-                }
-                right += Position(e, Index);
-
-                print.log("a;lksjdklf;", left, target, right, last, e, Index);
-                /*if (target.IsBetweenBetter(left, right) || Math.Sign(right - left) != direction)
-                {
-                    if (Math.Abs(target - left) <= Math.Abs(target - right))
-                    {
-                        return MoveCursor(prev, index);
-                    }
-                    else
-                    {
-                        return MoveCursor(e, Index);
-                    }
-                }
-                if (Math.Abs(target - left) <= Math.Abs(target - right) && left != right)
-                //if (Math.Sign(target - right) != direction)
-                //if (target.IsBetweenBetter(left, right))
-                {
-                    return MoveCursor(last.Item1, last.Item2);
-                }
-
-                bool stall = left == right;
-                if (!stall)
-                {
-                    last = new Tuple<Expression, int>(e, Index);
-                }
-                left = right;
-
-                if (e != root)
-                {
-                    left += e.Width * direction;
-                    if (target.IsBetweenBetter(left, right))
-                    {
-                        return Center(e, target, Math.Min(left, right), direction);
-                    }
-
-                    Index = e.Children.Count * (direction + 1) / 2;
-                }
-
-                if (stall)
-                {
-                    left = right;
-                }
-            }
-            while (root != e || (Index > 0 && Index < root.Children.Count));
-
-            return MoveCursor(root, root.Children.Count * (direction + 1) / 2);
-        }*/
-
         private static double Position(Expression parent, int index) => index < parent.Children.Count ? parent.Children[index].X : (parent.Children.Count == 0 ? 0 : parent.Width);
-
-        /*private static bool Center(Expression root, double target, double offset, bool first = true)
-        {
-            View child = null;
-            int index = 0;
-            while (target > offset && index < root.Children.Count)
-            {
-                child = root.Children[index];
-
-                double x = offset + child.X;
-                if (target >= x && target < x + child.Width)
-                {
-                    if (child is MathLayout)
-                    {
-                        foreach(Expression e in MathLayoutExpressions(root, index))
-                        {
-                            double pos = x + e.PositionOn(child).X;
-                            if (Center(e, target, pos, false))
-                            {
-                                return true;
-                            }
-                            else if (pos > target)
-                            {
-                                MoveCursor(e, 0);
-                            }
-                        }
-
-                        return false;
-                    }
-                    else
-                    {
-                        return MoveCursor(root, index + (target > x + child.Width / 2).ToInt());
-                    }
-                }
-
-                index++;
-            }
-
-            if (first)
-            {
-                return MoveCursor(root, index);
-            }
-            else
-            {
-                return false;
-            }
-        }*/
-
-        /*private static bool Center(Expression root, double target, double offset)
-        {
-            Tuple<Expression, int, double> current = new Tuple<Expression, int, double>(root, 0, offset);
-            Index = 0;
-            double x = offset;
-            do
-            {
-                Expression e = checkIndex(1, current.Item1);
-
-                // Stepped into the beginning of a new parent
-                if (Index == 0)
-                {
-                    x = offset + e.PositionOn(current.Item1).X;
-                }
-                else
-                {
-                    x = offset += e.Children[Index - 1].Width;
-                }
-
-                if (Math.Abs(target - current.Item3) <= Math.Abs(target - x))
-                {
-                    return MoveCursor(current.Item1, current.Item2);
-                }
-                else if (e == root && Index == e.Children.Count)
-                {
-                    return MoveCursor(root, e.Children.Count);
-                }
-
-                current = new Tuple<Expression, int, double>(e, Index, x);
-            }
-            while (true);
-        }*/
-
-        /*private static bool Center(Expression parent, double target, double offset)
-        {
-            if (parent.Children.Count == 0)
-            {
-                return false;
-            }
-
-            int index = 0;
-            while (index < parent.Children.Count - 1 && target >= offset + parent.Children[index].Width)
-            {
-                /*if (Math.Abs(target - offset) < Math.Abs(target - (offset + parent.Children[index].Width)))
-                {
-                    view = parent.Children[index];
-                    break;
-                }
-
-                offset += parent.Children[index].Width;
-                index++;
-            }
-            print.log(";alksjdklf;js", target, offset, index);
-            if (target != offset && parent.Children[index] is MathLayout)
-            {
-                Index = index;
-                Expression e = parent;
-                do
-                {
-                    e = checkIndex(1, e);
-                }
-                while (e != parent.Children[index] && !Center(e, target, offset));
-            }
-            else
-            {
-                MoveCursor(parent, index + (target > offset + parent.Children[index].Width / 2).ToInt());
-            }
-
-            return true;
-        }*/
-
-        /*private static bool MoveVertical(int direction)
-        {
-            View root = Cursor.Root<View>();
-            Point start = Cursor.PositionOn(root);
-
-            View parent = Cursor.Parent;
-            while (true)
-            {
-                if (parent.Parent is Fraction)
-                {
-                    break;
-                }
-
-                parent = parent.Parent as View;
-                if (parent == null)
-                {
-                    return false;
-                }
-            }
-
-            Expression e = (Expression)parent;
-            Tuple<Expression, int> lastPos = new Tuple<Expression, int>(e, Index = e.ChildCount() * (direction + 1) / 2);
-            double lastDistance = double.PositiveInfinity;
-            print.log("alksjdfkl;asjdfk;l", lastPos.Item1, lastPos.Item2, direction);
-            do
-            {
-                e = checkIndex(direction, lastPos.Item1);
-                print.log("checked", e, Index);
-
-                int i = Index == e.Children.Count ? 1 : 0;
-
-                View view = e.Children[Index - i];
-                Point point = e.PositionOn(root);
-                point = new Point(point.X + view.X + view.Width * i, point.Y + e.Height * e.Middle);
-                double distance = start.Distance(point);
-                print.log(lastDistance, distance);
-                if (distance > lastDistance)
-                {
-                    break;
-                }
-                if (e == lastPos.Item1 && Index == lastPos.Item2)
-                {
-                    return false;
-                }
-
-                lastPos = new Tuple<Expression, int>(e, Index);
-                lastDistance = distance;
-            }
-            while (true);
-
-            MoveCursor(lastPos.Item1, lastPos.Item2);
-
-            return true;
-        }*/
 
         public static bool MoveCursor(Expression parent, int i = 0)
         {
@@ -580,7 +311,7 @@ namespace Xamarin.Forms.MathDisplay
 
             string current;
             //Grab stuff until we hit an operand
-            while (index.IsBetween(0, input.Count - 1) && !(Crunch.Machine.StringClassification.IsOperand(input[index].ToString().Trim()) && input[index].ToString() != "-" && imbalance == 0))
+            while (index.IsBetween(0, input.Count - 1) && !(Crunch.Machine.StringClassification.IsOperator(input[index].ToString().Trim()) && input[index].ToString() != "-" && imbalance == 0))
             {
                 view = input[index];
 

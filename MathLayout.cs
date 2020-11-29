@@ -11,6 +11,39 @@ namespace Xamarin.Forms.MathDisplay
 {
     public abstract class MathLayout : TouchableStackLayout, IMathView
     {
+        public static BindableProperty TextColorProperty = BindableProperty.Create("TextColor", typeof(Color), typeof(MathLayout), Color.Default, propertyChanged: (bindable, oldValue, newValue) => ((MathLayout)bindable).ApplyColor());
+
+        public Color TextColor
+        {
+            get => (Color)GetValue(TextColorProperty);
+            set => SetValue(TextColorProperty, value);
+        }
+
+        protected override void OnChildAdded(Element child)
+        {
+            base.OnChildAdded(child);
+            ApplyColor(child);
+        }
+
+        private void ApplyColor(params Element[] children)
+        {
+            foreach (Element child in children.Length == 0 && Children != null ? Children : (IEnumerable<Element>)children)
+            {
+                if (child is MathLayout mathLayout)
+                {
+                    mathLayout.TextColor = TextColor;
+                }
+                if (child is Text text)
+                {
+                    text.TextColor = TextColor;
+                }
+                if (child is ImageText imageText)
+                {
+                    imageText.Source.Color = TextColor;
+                }
+            }
+        }
+
         public MathLayout ParentMathLayout
         {
             get
@@ -51,7 +84,7 @@ namespace Xamarin.Forms.MathDisplay
         }
         private double fontSize = Text.MaxFontSize;
 
-        public abstract double Middle { get; }
+        public virtual double Middle => Midline;
         public virtual Expression InputContinuation => null;
         public abstract double MinimumHeight { get; }
         public int MathViewCount { get; private set; }
