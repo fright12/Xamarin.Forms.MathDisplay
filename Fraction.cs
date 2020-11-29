@@ -28,8 +28,6 @@ namespace Xamarin.Forms.MathDisplay
         private static readonly int NestedFractionPadding = 20;
         private static BoxView Bar => new BoxView { HeightRequest = 2, WidthRequest = 0, BackgroundColor = Color.Black };
 
-        public Fraction() { }
-
         public Fraction(View numerator, View denominator)
         {
             //BackgroundColor = Color.Beige;
@@ -39,11 +37,9 @@ namespace Xamarin.Forms.MathDisplay
             Spacing = 0;
 
             Numerator = toExpression(numerator);
-            BoxView bar = Bar;
-            bar.SetBinding(BoxView.ColorProperty, this, "TextColor");
             Denominator = toExpression(denominator);
             
-            Children.Add(Numerator, bar, Denominator);
+            Children.AddRange(Numerator, Bar, Denominator);
         }
 
         public override void Lyse() => Lyse(Numerator, Denominator);
@@ -75,6 +71,6 @@ namespace Xamarin.Forms.MathDisplay
 
         public override string ToLatex() => "\frac{" + Numerator.ToString() + "}{" + Denominator.ToString() + "}";
 
-        public override string ToString() => Numerator.ToString() + "/" + Denominator.ToString();
+        public override string ToString() => "(" + Numerator.ToString() + "/" + Denominator.ToString() + ")";
     }
 }

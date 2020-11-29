@@ -5,14 +5,14 @@ using System.Text;
 
 using System.Extensions;
 using Xamarin.Forms.Extensions;
-using Xamarin.Forms.Xaml;
 
 namespace Xamarin.Forms.MathDisplay
 {
     public delegate void HeightChangedEventHandler(Expression e);
     public delegate void InputChangedEventHandler();
     public delegate void ChildrenChangedEventHandler(object sender, ElementEventArgs e, bool added);
-    
+    public delegate void DeletedEventHandler();
+
     public class Range
     {
         public double Upper { get; private set; }
@@ -30,23 +30,14 @@ namespace Xamarin.Forms.MathDisplay
 
     public enum TextFormatting { None = 0, Superscript = 94, Subscript = 95 }
 
-    [XamlCompilation(XamlCompilationOptions.Compile)]
-    public partial class Expression : MathLayout
+    public class Expression : MathLayout
     {
-        public static readonly BindableProperty TextProperty = BindableProperty.Create(nameof(Text), typeof(string), typeof(Expression));
-
-        public string Text
-        {
-            get => (string)GetValue(TextProperty);
-            set => SetValue(TextProperty, value);
-        }
-
         public event HeightChangedEventHandler HeightChanged;
         public event InputChangedEventHandler InputChanged;
         public event ChildrenChangedEventHandler ChildrenChanged;
 
         public new Expression Parent => base.Parent as Expression;
-        public TextFormatting TextFormat => (BindingContext as ExpressionViewModel)?.TextFormat ?? TextFormatting.None;
+        public TextFormatting TextFormat { get; private set; }
         //public bool Editable = false;
 
         public static readonly BindableProperty EditableProperty = BindableProperty.Create("Editable", typeof(bool), typeof(Expression), defaultBindingMode: BindingMode.TwoWay, propertyChanged: OnEditableChanged);
@@ -86,7 +77,7 @@ namespace Xamarin.Forms.MathDisplay
         {
             set
             {
-                base.FontSize = value * (TextFormat != TextFormatting.None ? MathDisplay.Text.FontSizeDecrease : 1);
+                base.FontSize = value * (TextFormat != TextFormatting.None ? Text.FontSizeDecrease : 1);
             }
         }
 
@@ -96,11 +87,11 @@ namespace Xamarin.Forms.MathDisplay
             {
                 if (TextFormat == TextFormatting.Superscript)
                 {
-                    return 1 + (1 - MathDisplay.Text.FontSizeDecrease) / 2;
+                    return 1 + (1 - Text.FontSizeDecrease) / 2;
                 }
                 else if (TextFormat == TextFormatting.Subscript)
                 {
-                    return -(1 - MathDisplay.Text.FontSizeDecrease) / 2;
+                    return -(1 - Text.FontSizeDecrease) / 2;
                 }
                 else
                 {
@@ -108,27 +99,18 @@ namespace Xamarin.Forms.MathDisplay
                 }
             }
         }
-
         public override Expression InputContinuation => TextFormat != TextFormatting.Subscript && Children.Count == 0 ? this : null;
-        public override double MinimumHeight => System.Math.Ceiling(MathDisplay.Text.MaxTextHeight * FontSize / MathDisplay.Text.MaxFontSize);
-
-        public Expression() : this(TextFormatting.None) { }
+        public override double MinimumHeight => System.Math.Ceiling(Text.MaxTextHeight * FontSize / Text.MaxFontSize);
 
         public Expression(TextFormatting format = TextFormatting.None)
         {
-            InitializeComponent();
-
             //BackgroundColor = Color.LightGreen;
             Orientation = StackOrientation.Horizontal;
             HorizontalOptions = LayoutOptions.Center;
             VerticalOptions = LayoutOptions.Center;
             Spacing = 0;
-
-            /*this.WhenPropertyChanged(TextProperty, (sender, e) =>
-            {
-                Children.Clear();
-                Add(Reader.Render(Text));
-            });*/
+            
+            TextFormat = format;
 
             ChildAdded += (sender, e) => ChildrenChanged?.Invoke(sender, e, true);
             ChildRemoved += (sender, e) => ChildrenChanged?.Invoke(sender, e, false);
@@ -137,37 +119,31 @@ namespace Xamarin.Forms.MathDisplay
             //CheckPadding();
         }
 
-        //public Expression(IEnumerable<View> children) : this() => AddRange(children);
-        internal Expression(params View[] children) : this() => Add(children);
-        internal Expression(TextFormatting format, params View[] children) : this(format) => Add(children);
+        public Expression(params View[] children) : this() => Add(children);
+        public Expression(TextFormatting format, params View[] children) : this(format) => Add(children);
 
         public override void Lyse() => Lyse(this);
 
-        public void Add(params View[] children) => InsertRange(Children.Count, children);
-        public void AddRange(IEnumerable<View> children) => InsertRange(Children.Count, children);
+        public void Add(params View[] children) => Insert(Children.Count, children);
 
         //public void Insert<T>(int index, params T[] children) where T : View, IMathView
-        public void Insert(int index, params View[] children) => InsertRange(index, children);
-        public void InsertRange(int index, IEnumerable<View> children)
+        public void Insert(int index, params View[] children)
         {
-            //for (int i = 0; i < children.Length; i++)
-            int i = 0;
-            foreach (View view in children)
+            for (int i = 0; i < children.Length; i++)
             {
-                (view.Parent as Expression)?.Children.Remove(view);
-                Children.Insert(index + i, view);
+                (children[i].Parent as Expression)?.Children.Remove(children[i]);
+                Children.Insert(index + i, children[i]);
 
-                if (view is Layout<View>)
+                if (children[i] is Layout<View>)
                 {
                     //PropogateProperty(children[i] as Layout<View>, Editable, (e, v) => e.Editable = e.Editable || v);
                 }
-                i++;
             }
         }
 
         public void RemoveAt(int index) => Children.RemoveAt(index);
 
-        private void OnInputChanged()
+        internal void OnInputChanged()
         {
             InputChanged?.Invoke();
             this.Parent<Expression>()?.OnInputChanged();
@@ -199,26 +175,11 @@ namespace Xamarin.Forms.MathDisplay
                 (child as IMathView).FontSize = FontSize;
             }
             OnEditableChanged(child, Editable, Editable);
-
-            if (child is IMathView)
-            {
-                OnInputChanged();
-            }
-        }
-
-        protected override void OnChildRemoved(Element child)
-        {
-            base.OnChildRemoved(child);
-
-            if (child is IMathView)
-            {
-                OnInputChanged();
-            }
         }
 
         public static readonly int extraSpaceForCursor = 3;
-        private int leftSpaceForCursor => (Editable && (this.ChildCount() == 0 || Children[0] is Layout<View>)).ToInt() * extraSpaceForCursor;
-        private int rightSpaceForCursor => (Editable && (this.ChildCount() == 0 || Children.Last() is Layout<View>)).ToInt() * extraSpaceForCursor;
+        private int leftSpaceForCursor => (Editable && (Children.Count == 0 || Children[0] is Layout<View>)).ToInt() * extraSpaceForCursor;
+        private int rightSpaceForCursor => (Editable && (Children.Count == 0 || Children.Last() is Layout<View>)).ToInt() * extraSpaceForCursor;
 
         protected override SizeRequest OnMeasure(double widthConstraint, double heightConstraint)
         {
@@ -242,12 +203,6 @@ namespace Xamarin.Forms.MathDisplay
 
         private string TextFormatString => (char)TextFormat == '\0' ? "" : ((char)TextFormat).ToString();
 
-        private string RelevantToString(object o)
-        {
-            string ans = o.ToString();
-            return ans == o.GetType().ToString() ? "" : ans;
-        }
-
         public override string ToLatex()
         {
             string s = "";
@@ -270,10 +225,7 @@ namespace Xamarin.Forms.MathDisplay
             string s = "";
             foreach (View v in Children)
             {
-                if (v is IMathView)
-                {
-                    s += Crunch.Machine.StringClassification.Simple(v.ToString()).Trim();
-                }
+                s += Crunch.Machine.StringClassification.Simple(v.ToString()).Trim();
             }
             
             if (s == "")

@@ -40,5 +40,8 @@ namespace Xamarin.Forms.MathDisplay
                 LastParent = Parent;
             }
         }
+
+        public string ToLatex() => "";
+        public override string ToString() => "";
     }
 }

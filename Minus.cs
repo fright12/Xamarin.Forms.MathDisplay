@@ -43,7 +43,7 @@ namespace Xamarin.Forms.MathDisplay
             {
                 int index = this.Index();
                 object previous;
-                if (Parent.IndexOf(this) == 0 || ((previous = Parent.ChildBefore(index)) != null && (Crunch.Machine.StringClassification.IsOperator(previous.ToString().Trim()) || previous.ToString().Trim() == "(" || (previous is Expression && (previous as Expression).TextFormat == TextFormatting.Subscript))))
+                if (Parent.IndexOf(this) == 0 || ((previous = Parent.ChildBefore(index)) != null && (Crunch.Machine.StringClassification.IsOperand(previous.ToString().Trim()) || previous.ToString().Trim() == "(" || (previous is Expression && (previous as Expression).TextFormat == TextFormatting.Subscript))))
                 {
                     Text = "-";
                 }
