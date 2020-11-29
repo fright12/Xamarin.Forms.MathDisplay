@@ -97,7 +97,7 @@ namespace Xamarin.Forms.MathDisplay
         public DataTemplate FractionTemplate { get; set; }
         public DataTemplate RadicalTemplate { get; set; }
 
-        public View Cursor { get; set; } = new CursorView { HeightRequest = 33, Color = Color.Black };
+        public CursorView Cursor { get; set; }
         private DataTemplate CursorTemplate;
 
         public MathTemplateSelector()
@@ -107,7 +107,7 @@ namespace Xamarin.Forms.MathDisplay
 
         protected override DataTemplate OnSelectTemplate(object item, BindableObject container)
         {
-            if (item is CursorViewModel)
+            if (item.ToString() == "|")
             {
                 return CursorTemplate;
             }

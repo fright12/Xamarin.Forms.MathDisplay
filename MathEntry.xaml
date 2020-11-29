@@ -10,11 +10,12 @@
                 x:DataType="local:MathEntryViewModel"
                 x:Name="this">
     <VisualElement.Resources>
-        <local:CursorView x:Key="Cursor"
+        <local:CursorView x:Name="Cursor"
+                          x:Key="Cursor"
                           BackgroundColor="{DynamicResource DetailColor}" />
 
         <DataTemplate x:Key="CursorTemplate">
-            <StaticResource Key="Cursor" />
+            <x:Reference Name="Cursor" />
         </DataTemplate>
 
         <Style TargetType="local:Expression">

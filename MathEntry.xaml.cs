@@ -34,12 +34,11 @@ namespace Xamarin.Forms.MathDisplay
         {
             InitializeComponent();
 
-            CursorView cursor = (CursorView)Resources["Cursor"];
-            ((MathTemplateSelector)MathView.Resources["MathDataTemplateSelector"]).Cursor = cursor;
-            //(BindingContext as MathEntryViewModel).Children.Add(CursorObject);
+            ((MathTemplateSelector)MathView.Resources["MathDataTemplateSelector"]).Cursor = Cursor;
+            (BindingContext as MathEntryViewModel).Children.Add(CursorObject);
             //(BindingContext as MathEntryViewModel).CursorPosition--;
 
-            cursor.MeasureInvalidated += (sender, e) => cursor.HeightRequest = MathDisplay.Text.MaxTextHeight * ((cursor as View).Parent as Expression).FontSize / MathDisplay.Text.MaxFontSize;
+            Cursor.MeasureInvalidated += (sender, e) => Cursor.HeightRequest = MathDisplay.Text.MaxTextHeight * ((Cursor as View).Parent as Expression).FontSize / MathDisplay.Text.MaxFontSize;
             this.SetBinding(TextProperty, "Text", BindingMode.TwoWay);
             //Cursor.SetBinding(IsVisibleProperty, "Focused");
         }
@@ -61,13 +60,13 @@ namespace Xamarin.Forms.MathDisplay
                 entry.WhenPropertyChanged("CursorPosition", (sender, e) =>
                 {
                     return;
-                    /*if (!(Cursor.Parent?.BindingContext is ExpressionViewModel expression))
+                    if (!(Cursor.Parent?.BindingContext is ExpressionViewModel expression))
                     {
                         return;
                     }
 
                     int index = Cursor.Index();
-                    expression.Children.RemoveAt(index);*/
+                    expression.Children.RemoveAt(index);
 
                     //entry.Insert(CursorObject);
                     //entry.CursorPosition--;

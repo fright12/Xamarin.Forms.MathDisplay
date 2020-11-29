@@ -33,10 +33,10 @@ namespace Xamarin.Forms.MathDisplay
         static Reader()
         {
             Instance = new Reader<T>(
-                new KeyValuePair<string, Operator>[]
+                new KeyValuePair<string, Operator>[2]
                 {
                     new KeyValuePair<string, Operator>("√", UnaryOperator((o) => new RadicalViewModel { Root = new T(), Radicand = Wrap(o, false) })),
-                    //new KeyValuePair<string, Operator>("_", UnaryOperator((o) => new ExpressionViewModel { Children = Wrap(o, false), TextFormat = TextFormatting.Subscript }))
+                    new KeyValuePair<string, Operator>("_", UnaryOperator((o) => new ExpressionViewModel { Children = Wrap(o, false), TextFormat = TextFormatting.Subscript }))
                 },
                 new KeyValuePair<string, Operator>[2]
                 {
@@ -45,7 +45,7 @@ namespace Xamarin.Forms.MathDisplay
                 },
                 new KeyValuePair<string, Operator>[1]
                 {
-                    new KeyValuePair<string, Operator>("/", BinaryOperator((o1, o2) => new FractionViewModel(Convert(Wrap(o1, false)), Convert(Wrap(o2, false)))))
+                    new KeyValuePair<string, Operator>("/", BinaryOperator((o1, o2) => new FractionViewModel { Numerator = Wrap(o1, false), Denominator = Wrap(o2, false) }))
                 }
             );
         }
@@ -71,7 +71,7 @@ namespace Xamarin.Forms.MathDisplay
 
             return new LinkedList<object>().Populate(o1, new ExpressionViewModel
             {
-                //Children = exponent,
+                Children = exponent,
                 TextFormat = TextFormatting.Superscript
             });
         }
@@ -80,16 +80,6 @@ namespace Xamarin.Forms.MathDisplay
         {
             Print.Log("rendering " + str);
             return Wrap(Instance.Parse(str), false);
-        }
-
-        private static Node<object> Convert(T t)
-        {
-            Node<object> node = new Node<object>();
-            if (t.Count > 0)
-            {
-                node.SetChildren(t);
-            }
-            return node;
         }
 
         public static T Wrap(object o, bool parend = true)
