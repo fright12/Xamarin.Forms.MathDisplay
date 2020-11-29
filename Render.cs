@@ -46,7 +46,7 @@ namespace Xamarin.Forms.MathDisplay
                 },
                 new KeyValuePair<string, Operator>[1]
                 {
-                    new KeyValuePair<string, Operator>("/", BinaryOperator((o1, o2) => new FractionViewModel { Children = new System.Collections.ObjectModel.ObservableCollection<MathViewModel> { ToNode(Wrap(o1, false)), ToNode(Wrap(o2, false)) } }))
+                    new KeyValuePair<string, Operator>("/", BinaryOperator((o1, o2) => new FractionViewModel(Convert(Wrap(o1, false)), Convert(Wrap(o2, false)))))
                 }
             );
         }
@@ -81,18 +81,6 @@ namespace Xamarin.Forms.MathDisplay
         {
             Print.Log("rendering " + str);
             return Wrap(Instance.Parse(str), false);
-        }
-
-        private static MathViewModel ToNode(T t)
-        {
-            MathViewModel model = new MathViewModel { Children = new System.Collections.ObjectModel.ObservableCollection<MathViewModel>() };
-
-            foreach (object o in t)
-            {
-                ((IList)model.Children).Add(o);
-            }
-
-            return model;
         }
 
         private static Node<object> Convert(T t)

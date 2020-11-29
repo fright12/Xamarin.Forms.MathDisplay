@@ -139,14 +139,6 @@ namespace Xamarin.Forms.MathDisplay
             {
                 return DefaultTemplate;
             }
-
-            if (item is Node<object> node)
-            {
-                if (node.Value is FractionViewModel)
-                {
-                    return FractionTemplate;
-                }
-            }
         }
     }
 }
