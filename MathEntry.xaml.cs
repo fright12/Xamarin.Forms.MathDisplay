@@ -38,7 +38,7 @@ namespace Xamarin.Forms.MathDisplay
             ((MathTemplateSelector)MathView.Resources["MathDataTemplateSelector"]).Cursor = Cursor;
             //(BindingContext as MathEntryViewModel).Children.Add(CursorObject);
             //(BindingContext as MathEntryViewModel).CursorPosition--;
-
+            
             Cursor.MeasureInvalidated += (sender, e) => Cursor.HeightRequest = MathDisplay.Text.MaxTextHeight * ((Cursor as View).Parent as Expression).FontSize / MathDisplay.Text.MaxFontSize;
             this.SetBinding(TextProperty, "Text", BindingMode.TwoWay);
             //Cursor.SetBinding(IsVisibleProperty, "Focused");
@@ -46,30 +46,69 @@ namespace Xamarin.Forms.MathDisplay
             MathEntryViewModel entry = (MathEntryViewModel)BindingContext;
             CursorModel = new CursorViewModel(new Node());
 
+            //CursorPositionChanged(entry, new System.ComponentModel.PropertyChangedEventArgs(MathEntryViewModel.CursorPositionProperty.PropertyName));
+            //entry.PropertyChanged += CursorPositionChanged;
             MathView.Content.Children.Add(Cursor);
             //entry.CursorMoved += CursorPositionChanged;
             //CursorPositionChanged(entry, new ChangedEventArgs<int>(0, 0));
+
+            //entry.RichTextChanged += RichTextChanged;
         }
 
-        private void CursorPositionChanged(object sender, ChangedEventArgs<int> e)
+        private int LastIndex = -1;
+
+        private void CursorParentChanged(int index)
         {
-            /*if (e.PropertyName != MathEntryViewModel.CursorPositionProperty.PropertyName)
+            Cursor.Parent.Children[index].BindingContext = Cursor;
+        }
+
+        private void RichTextChanged(object sender, MathEntryViewModel.CharCollectionChangedEventArgs e)
+        {
+            MathEntryViewModel entry = (MathEntryViewModel)sender;
+            
+            if (e.Action == System.Collections.Specialized.NotifyCollectionChangedAction.Add)
+            {
+                if (e.Index == entry.CursorPosition)
+                {
+                    MathView view = new MathView { BindingContext = e.Tree };
+                    Cursor.Parent.Children.Insert(Cursor.Index(), view.Content.Children[0]);
+                }
+                else
+                {
+                    throw new NotImplementedException();
+                }
+            }
+            else if (e.Action == System.Collections.Specialized.NotifyCollectionChangedAction.Remove)
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        private void CursorPositionChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName != MathEntryViewModel.CursorPositionProperty.PropertyName)
             {
                 return;
-            }*/
+            }
 
-            if (MathEntryModel.Text.Length == 0 || MathEntryModel.IndexOf(CursorModel) != e.NewValue)
+            //if (MathEntryModel.Text.Length == 0 || MathEntryModel.IndexOf(CursorModel) != e.NewValue)
             //if (MathEntryModel.Current != CursorModel)
+            if (MathEntryModel.Count == 0 || MathEntryModel[MathEntryModel.CursorPosition] != CursorModel)
             {
-                MathEntryModel.CursorMoved -= CursorPositionChanged;
+                MathEntryModel.PropertyChanged -= CursorPositionChanged;
 
-                MathEntryModel.CursorPosition = e.OldValue + 1;
-                MathEntryModel.Delete();
-                MathEntryModel.CursorPosition = e.NewValue;
-                MathEntryModel.Insert(CursorModel);
+                //MathEntryModel.CursorPosition = e.OldValue + 1;
+                int index = LastIndex;
+                if (index != -1)
+                {
+                    MathEntryModel.RemoveAt(index);
+                }
+                //MathEntryModel.CursorPosition = e.NewValue;
+                MathEntryModel.Insert(MathEntryModel.CursorPosition, "", CursorModel);
                 MathEntryModel.CursorPosition--;
 
-                MathEntryModel.CursorMoved += CursorPositionChanged;
+                MathEntryModel.PropertyChanged += CursorPositionChanged;
+                LastIndex = MathEntryModel.CursorPosition;
             }
         }
 
@@ -103,10 +142,6 @@ namespace Xamarin.Forms.MathDisplay
             if (BindingContext is MathEntryViewModel entry)
             {
                 //entry.Children.Add(CursorObject);
-                entry.CursorMoved += (sender, e) =>
-                {
-
-                };
 
                 entry.WhenPropertyChanged("CursorPosition", (sender, e) =>
                 {

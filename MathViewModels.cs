@@ -9,9 +9,41 @@ using System.Windows.Input;
 
 namespace Xamarin.Forms.MathDisplay
 {
-    public abstract class MathViewModel : Node
+    public class MathViewModel : BindableObject, INotifyCollectionChanged //: Node
     {
+        public MathViewModel Parent { get; private set; }
 
+        public int Count { get; private set; }
+
+        public event NotifyCollectionChangedEventHandler CollectionChanged;
+
+        public void Insert(int index, MathViewModel child)
+        {
+            if (CollectionChanged == null)
+            {
+                Parent.Insert(4 + index, child);
+            }
+            else
+            {
+                CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, child, index));
+            }
+
+            child.Parent = this;
+        }
+
+        public void OnCollectionChanged(NotifyCollectionChangedEventArgs e)
+        {
+            if (e.Action == NotifyCollectionChangedAction.Add)
+            {
+                Count += e.NewItems.Count;
+            }
+            else if (e.Action == NotifyCollectionChangedAction.Remove)
+            {
+                Count -= e.OldItems.Count;
+            }
+
+            CollectionChanged?.Invoke(this, e);
+        }
     }
 
     public class TextViewModel : MathViewModel
@@ -21,54 +53,6 @@ namespace Xamarin.Forms.MathDisplay
         public static implicit operator TextViewModel(string str) => new TextViewModel { Text = str };
 
         public override string ToString() => Text;
-    }
-
-    public class Enumerator : IEnumerator
-    {
-        public object Current => Top.Current;
-
-        private IEnumerator Top => Parents.Peek();
-
-        private Stack<IEnumerator> Parents;
-        private IEnumerable Root;
-
-        public Enumerator(IEnumerable enumerable)
-        {
-            Parents = new Stack<IEnumerator>();
-            Parents.Push((Root = enumerable).GetEnumerator());
-        }
-
-        public bool MoveNext()
-        {
-            while (true)
-            {
-                if (!Top.MoveNext())
-                {
-                    if (Parents.Count == 1)
-                    {
-                        return false;
-                    }
-
-                    Parents.Pop();
-                }
-                else if (Top.Current is IEnumerable enumerable)
-                {
-                    Parents.Push(enumerable.GetEnumerator());
-                }
-                else
-                {
-                    break;
-                }
-            }
-
-            return true;
-        }
-
-        public void Reset()
-        {
-            Parents.Clear();
-            Parents.Push(Root.GetEnumerator());
-        }
     }
 
     public class CursorViewModel : MathViewModel, IEditEnumerator<object>
@@ -384,7 +368,7 @@ namespace Xamarin.Forms.MathDisplay
         }
     }
 
-    public class ExpressionViewModel : BindableObject, IEditEnumerable<object>
+    public class ExpressionViewModel : MathViewModel//, IEditEnumerable<object>
     {
         public static readonly BindableProperty TextProperty = BindableProperty.Create(nameof(Text), typeof(string), typeof(Expression), string.Empty, propertyChanged: (bindable, oldValue, newValue) => ((ExpressionViewModel)bindable).OnTextChanged((string)oldValue, (string)newValue));
 
@@ -396,17 +380,17 @@ namespace Xamarin.Forms.MathDisplay
 
         public TextFormatting TextFormat { get; set; }
 
-        public IEnumerable Children { get; set; }
+        //public IEnumerable Children { get; set; }
 
         //public override IList InputContinuation => TextFormat != TextFormatting.Subscript && Children.Count == 0 ? Children : null;
 
         protected virtual void OnTextChanged(string oldText, string newText)
         {
             //Children = Reader<List<object>>.Render(newText);
-            OnPropertyChanged(nameof(Children));
+            //OnPropertyChanged(nameof(Children));
         }
 
-        public IEditEnumerator<object> GetEnumerator() => (Children as IList<object>).GetEditEnumerator();
+        /*public IEditEnumerator<object> GetEnumerator() => (Children as IList<object>).GetEditEnumerator();
 
         IEditEnumerator IEditEnumerable.GetEnumerator() => GetEnumerator();
 
@@ -416,7 +400,7 @@ namespace Xamarin.Forms.MathDisplay
 
         IEnumerator<object> IEnumerable<object>.GetEnumerator() => GetEnumerator();
 
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();*/
     }
 
     public class RadicalViewModel : OperatorViewModel
@@ -483,27 +467,29 @@ namespace Xamarin.Forms.MathDisplay
         public OperatorViewModel1(int arity) => Arity = arity;
     }
 
-    public class FractionViewModel : OperatorViewModel1
+    public class FractionViewModel : MathViewModel
     {
-        public IEnumerable Numerator { get; set; }// => (IList)ChildrenList[0]?.ChildrenList;
+        public IEnumerable Numerator => ((MathViewModel)((IList)Children)[0]).Children;
 
-        public IEnumerable Denominator { get; set; }// => (IList)ChildrenList[1]?.ChildrenList;
+        public IEnumerable Denominator => ((MathViewModel)((IList)Children)[1]).Children;
 
-        public FractionViewModel(Node<object> numerator, Node<object> denominator) : base(2)
+        public FractionViewModel()//IEnumerable numerator, IEnumerable denominator) : base(2)
         {
+            
+
             /*SetChildren(new List<Node<object>>
             {
                 numerator,
                 denominator
             });*/
 
-            Children = new LinkedList<Node<object>>();
+            //Children = new LinkedList<Node<object>>();
 
-            Children.AddLast(numerator);
+            /*Children.AddLast(numerator);
             Children.AddLast(new Node<object>("/"));
-            Children.AddLast(denominator);
+            Children.AddLast(denominator);*/
 
-            for (LinkedListNode<Node<object>> node = Children.First; node != null; node = node.Next)
+            /*for (LinkedListNode<Node<object>> node = Children.First; node != null; node = node.Next)
             {
                 if (node.Value.Children == null)
                 {
@@ -514,12 +500,12 @@ namespace Xamarin.Forms.MathDisplay
                 {
                     child.ParentNode = node;
                 }
-            }
+            }*/
 
-            numerator.Value = Numerator = new ObservableLinkedList<object>(Children.First);
-            denominator.Value = Denominator = new ObservableLinkedList<object>(Children.Last);
+            //numerator.Value = Numerator;
+            //denominator.Value = Denominator;
 
-            InfixOrder = 1;
+            //InfixOrder = 1;
         }
 
         //public override IList InputContinuation => Denominator;
@@ -753,335 +739,6 @@ namespace Xamarin.Forms.MathDisplay
         protected LinkedListNode<Node<T>> VisitLastChild(LinkedListNode<Node<T>> node) => node.Value.Children?.Last;
     }
 
-    public class ObservableLinkedList<T> : MathViewModel, INotifyCollectionChanged, IEnumerable
-    {
-        public event NotifyCollectionChangedEventHandler CollectionChanged;
-
-        public int Count { get; private set; }
-
-        private Itr Visitor;
-        private LinkedListNode<Node<T>> Root;
-        private (LinkedListNode<Node<T>>, int) Context;
-
-        public ObservableLinkedList(LinkedListNode<Node<T>> root)
-        {
-            Root = root;
-
-            IEnumerator itr = GetEnumerator();
-            while (itr.MoveNext())
-            {
-                Count++;
-            }
-
-            Visitor = new Itr(this);
-            Context = (Root, -1);
-        }
-
-        private int IndexOf(LinkedListNode<Node<T>> node)
-        {
-            if (Context.Item1 == node)
-            {
-                return Context.Item2;
-            }
-
-            int index = 0;
-            foreach (LinkedListNode<Node<T>> leaf in LeafNodes())
-            {
-                if (leaf == node)
-                {
-                    return index;
-                }
-
-                index++;
-            }
-
-            return -1;
-        }
-
-        public void AddBefore(LinkedListNode<Node<T>> node, T value) => AddValue(node, value, true);
-        public void AddAfter(LinkedListNode<Node<T>> node, T value) => AddValue(node, value, false);
-        private void AddValue(LinkedListNode<Node<T>> node, T value, bool before) => Add(node, new LinkedListNode<Node<T>>(new Node<T>(value)), before);
-
-        public void AddBefore(LinkedListNode<Node<T>> node, LinkedListNode<Node<T>> newNode) => Add(node, newNode, true);
-        public void AddAfter(LinkedListNode<Node<T>> node, LinkedListNode<Node<T>> newNode) => Add(node, newNode, false);
-
-        private void Add(LinkedListNode<Node<T>> node, LinkedListNode<Node<T>> newNode, bool before)
-        {
-            int index = IndexOf(node);
-
-            if (index == -1)
-            {
-                throw new InvalidOperationException();
-            }
-
-            if (newNode.Value.Value is MathViewModel)
-            {
-                Insert(index + (before ? 0 : 1), newNode);
-                return;
-            }
-            else if (before)
-            {
-                node.List.AddBefore(node, newNode);
-                //Context = (node, index + 1);
-            }
-            else
-            {
-                node.List.AddAfter(node, newNode);
-                //index++;
-            }
-        }
-
-        private LinkedListNode<Node<T>> this[int index]
-        {
-            get
-            {
-                LinkedListNode<Node<T>> node = Context.Item1;
-                int sign = Math.Sign(index - Context.Item2);
-
-                for (int i = 0; i < Math.Abs(index - Context.Item2); i++)
-                {
-                    do
-                    {
-                        node = sign == -1 ? Visitor.Before(node) : Visitor.After(node);
-                    }
-                    while (node.Value.Children != null || !(node.Value.Value is MathViewModel));
-                }
-
-                Context = (node, index);
-                return node;
-            }
-        }
-
-        public void Insert(int index, T value) => Insert(index, Convert(value));
-
-        public void Insert(int index, LinkedListNode<Node<T>> newNode) //=> Insert(index, newNode, Add);
-
-        //public void Insert<T1>(int index, T1 value, Action<LinkedListNode<Node<T>>, T1, bool> adder)
-        {
-            //adder(this[Math.Max(0, Math.Min(Count - 1, index))], value, index != Count);
-
-            if (index < 0 || index > Count)
-            {
-                throw new IndexOutOfRangeException();
-            }
-
-            if (index == Count)
-            {
-                if (Root.Value.Children == null)
-                {
-                    Root.Value.Children = new LinkedList<Node<T>>();
-                }
-
-                // Expression
-                if (Count == 0 && Root.Value.Children.Count == 2)
-                {
-                    Root.Value.Children.AddBefore(Root.Value.Children.Last, newNode);
-                }
-                else
-                {
-                    Root.Value.Children.AddLast(newNode);
-                }
-
-                Context = (newNode, index);
-                newNode.Value.ParentNode = Root;
-            }
-            else
-            {
-                LinkedListNode<Node<T>> node = this[index];
-                node.List.AddBefore(node, newNode);
-
-                Context = (node, index + 1);
-                newNode.Value.ParentNode = node.Value.ParentNode;
-            }
-
-            OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, newNode.Value.Value, index));
-        }
-
-        private LinkedListNode<Node<T>> Convert(T value) => new LinkedListNode<Node<T>>(new Node<T>(value));
-
-        public void RemoveAt(int index)
-        {
-            if (index < 0 || index > Count - 1)
-            {
-                throw new IndexOutOfRangeException();
-            }
-
-            Remove(this[index]);
-        }
-
-        public bool Remove(LinkedListNode<Node<T>> node)
-        {
-            int index = node == Context.Item1 ? Context.Item2 : IndexOf(node);
-            Context = (Visitor.Before(node) ?? Visitor.After(node), Math.Max(0, index - 1));
-
-            node.List.Remove(node);
-            OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, node.Value.Value, index));
-
-            return true;
-        }
-
-        public virtual void OnCollectionChanged(NotifyCollectionChangedEventArgs e)
-        {
-            if (e.Action == NotifyCollectionChangedAction.Add)
-            {
-                Count += e.NewItems.Count;
-            }
-            else if (e.Action == NotifyCollectionChangedAction.Remove)
-            {
-                Count -= e.OldItems.Count;
-            }
-
-            CollectionChanged?.Invoke(this, e);
-        }
-
-        public IEnumerator GetEnumerator() => LeafNodes().Select(node => node.Value.Value).GetEnumerator();
-
-        private IEnumerable<LinkedListNode<Node<T>>> LeafNodes()
-        {
-            Itr itr = new Itr(this);
-            LinkedListNode<Node<T>> node = Root;
-            //List<object> test = new List<object>();
-            while (node != null)
-            {
-                if (node != Root && node.Value.Value is MathViewModel)
-                {
-                    //test.Add(itr.Node.Value.Value);
-                    yield return node;
-                }
-
-                node = itr.After(node);
-            }
-
-            //return test.GetEnumerator();
-        }
-
-        public class Itr : TreeVisitor<T>
-        {
-            //public LinkedListNode<Node<T>> Node;
-            private ObservableLinkedList<T> List;
-            private int LocalIndex;
-
-            public Itr(ObservableLinkedList<T> list) : base(list.Root)
-            {
-                List = list;
-                //Current = list.Root;
-            }
-
-            protected override LinkedListNode<Node<T>> Visit(LinkedListNode<Node<T>> node, bool forward)
-            {
-                if (node.Value.Value is ObservableLinkedList<T> list && list != List)
-                {
-                    return null;
-                }
-
-                return base.Visit(node, forward);
-            }
-        }
-
-        public class Enumerator
-        {
-            private Stack<Test<T>> Stack;
-
-            private ObservableLinkedList<T> List => Stack.Peek().List;
-            private int LocalIndex
-            {
-                get => Stack.Peek().Index;
-                set => Stack.Peek().Index = value;
-            }
-
-            public LinkedListNode<Node<T>> Node { get; private set; }
-
-            public Enumerator(ObservableLinkedList<T> list)
-            {
-                Stack = new Stack<Test<T>>();
-                Stack.Push(new Test<T>(list, 0));
-
-                //Node = MathEntryViewModel.Next(list.Root);
-            }
-
-            public T Current => Node.Value.Value;
-
-            public void Insert(T value)
-            {
-                Node.List.AddBefore(Node, new Node<T>(value));
-                List.OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, value, LocalIndex++));
-            }
-
-            public bool Delete()
-            {
-                LinkedListNode<Node<T>> prev = Node.Previous;
-
-                List.OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, Node.Value.Value, LocalIndex--));
-                Node.List.Remove(Node);
-
-                Node = prev;
-
-                return true;
-            }
-
-            public bool Move(int n)
-            {
-                int sign = Math.Sign(n);
-
-                if (sign == 0)
-                {
-                    return true;
-                }
-
-                for (int i = 0; i < Math.Abs(n); i++)
-                {
-                    do
-                    {
-                        LocalIndex += sign;
-
-                        if (LocalIndex < 0 || LocalIndex > List.Count)
-                        {
-                            Stack.Pop();
-                        }
-
-                        if (sign < 0)
-                        {
-                            //Node = MathEntryViewModel.Prev(Node);
-                        }
-                        else if (sign > 0)
-                        {
-                            //Node = MathEntryViewModel.Next(Node);
-                        }
-
-                        if (Node.Value.Value is ObservableLinkedList<T> expression)
-                        {
-                            Stack.Push(new Test<T>(expression, 0));
-                        }
-                    }
-                    while (!(Node.Value.Value is MathViewModel));
-                }
-
-                return true;
-            }
-        }
-    }
-
-    public class Test : Test<object>
-    {
-        public Test Parent { get; set; }
-
-        public Test(ObservableLinkedList<object> list, int index) : base(list, index) { }
-    }
-
-    public class Test<T>
-    {
-        public LinkedListNode<Node<T>> Node;
-        public ObservableLinkedList<T> List { get; set; }
-        public int Index { get; set; }
-        public int Position { get; set; }
-
-        public Test(ObservableLinkedList<T> list, int index)
-        {
-            List = list;
-            Index = index;
-        }
-    }
-
     public class MathEntryViewModel : ExpressionViewModel//, IEditEnumerable<object>
     {
         public enum CursorKey { Left, Right, Up, Down, End, Home };
@@ -1094,11 +751,22 @@ namespace Xamarin.Forms.MathDisplay
             set => SetValue(TextProperty, value);
         }*/
 
-        public event EventHandler<ChangedEventArgs<int>> CursorMoved;
+        //public event EventHandler<ChangedEventArgs<int>> CursorMoved;
+        //public event EventHandler<CharCollectionChangedEventArgs> RichTextChanged;
 
-        public static readonly BindableProperty CursorPositionProperty = BindableProperty.Create(nameof(CursorPosition), typeof(int), typeof(MathEntryViewModel), 0, coerceValue: (bindable, value) => ((MathEntryViewModel)bindable).CoerceCursorPosition((int)value));
+        public MathViewModel this[int index] => List[index];
 
-        public int Count => Text.Length;
+        public static readonly BindableProperty CursorPositionProperty = BindableProperty.Create(nameof(CursorPosition), typeof(int), typeof(MathEntryViewModel), 0, validateValue: (bindable, value) =>
+        {
+            int position = (int)value;
+            return position >= 0 && position <= ((MathEntryViewModel)bindable).Count;
+        }, coerceValue: (bindable, value) =>
+        {
+            MathEntryViewModel entry = (MathEntryViewModel)bindable;
+            return entry.Count - (int)entry.CoerceCursorPosition(entry.Count - (int)value);
+        });
+
+        public int Count => List.Count;
         public int CursorPosition
         {
             get => Count - (int)GetValue(CursorPositionProperty);
@@ -1117,121 +785,24 @@ namespace Xamarin.Forms.MathDisplay
         public ICommand BackspaceCommand { get; set; }
         public ICommand MoveCursorCommand { get; set; }
 
-        public object Current => Local.Node?.Value.Value;
-
         private readonly TreeVisitor<object> Visitor;
-        private readonly LinkedListNode<Node<object>> Root;
+        //private readonly LinkedListNode<Node<object>> Root;
         private CursorViewModel Cursor;
-
-        /*public ObservableLinkedList<object> Parent => Stack.Last().List;
-        public int LocalIndex
-        {
-            get => Stack.Last().Index;
-            private set => Stack.Last().Index = value;
-        }*/
-        //private LinkedListNode<Node<object>> Current { get; set; }
-        private Test Local;
-
-        /*public class Enumerator<T>
-        {
-            public ObservableLinkedList<T> Top => Stack.Peek();
-            public LinkedListNode<Node<T>> Current;
-
-            private Stack<ObservableLinkedList<T>> Stack;
-            public readonly TreeVisitor<T> Tree;
-
-            public Enumerator(LinkedListNode<Node<T>> root)
-            {
-                Stack = new Stack<ObservableLinkedList<T>>();
-                Stack.Push(new ObservableLinkedList<T>(root));
-
-                Tree = new TreeVisitor<T>(root);
-                Current = root;
-            }
-
-            public bool MoveNext() => Move(1);
-            public bool MovePrev() => Move(-1);
-
-            public bool Move(int n)
-            {
-                int sign = Math.Sign(n);
-
-                for (int i = 0; i < Math.Abs(n); i++)
-                {
-                    do
-                    {
-                        Current = sign == -1 ? Tree.Prev(Current) : Tree.Next(Current);
-
-                        if (Current == null)
-                        {
-                            if (Stack.Count == 1)
-                            {
-                                return false;
-                            }
-
-                            Stack.Pop();
-                        }
-                        if (Current is ObservableLinkedList<T> expression)
-                        {
-                            Stack.Push(expression);
-                        }
-                    }
-                    while (Current.Value.Children != null);
-                }
-
-                return true;
-            }
-        }*/
-
-        /*private Stack<Test> Stack;
-        private ObservableLinkedList<object> Expression => Stack.Peek().List;
+        private List<MathViewModel> List;
+        private List<int> Indices;
         private int LocalIndex
         {
-            get => Stack.Peek().Index;
-            set => Stack.Peek().Index = value;
-        }*/
+            get => Indices.Last();
+            set => Indices[Indices.Count - 1] = value;
+        }
+        private MathViewModel Current;
 
         public MathEntryViewModel()
         {
-            /*SetChildren(Children = new ObservableCollection<Node<object>>
-            {
-                (Cursor = new CursorViewModel(this))
-            });*/
-            Root = new LinkedListNode<Node<object>>(new Node<object>
-            {
-                Children = new LinkedList<Node<object>>
-                {
-                    //(CursorVM = new CursorViewModel(new Node { Value = this }))
-                },
-            });
-            
-            Visitor = new TreeVisitor<object>(Root);
-            //Current = Visitor.After(Root);
-
+            List = new List<MathViewModel>();
             Cursor = new CursorViewModel(new Node { Value = this });
-            Local = new Test(new ObservableLinkedList<object>(Root), 0);// { Node = Current };
-            Children = Local.List;
-            Local.List.OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, Cursor, 0));
-
-            //Editor = new Enumerator<object>(root);
-            //Children = Editor.Top;
-            //Editor.Move(1);
-
-            //Stack = new Stack<ObservableLinkedList<object>.Itr>();
-            //Stack.Push(new ObservableLinkedList<object>.Itr(list));
-            //Itr.MoveNext();
-
-            //Editor = new ObservableLinkedList<object>.Enumerator(list);
-
-            //Stack = new Stack<Test>();
-            //Stack.Push(new Test(list, 0));
-            //Expressions.Push(new  new ObservableLinkedList<object>(root));
-
-            //Cursor.MoveNext();
-
-            //Cursor.Itr.AddNext(Cursor);
-            //Cursor.Parent = this;
-            //Cursor.Top.MoveNext();
+            Indices = new List<int> { -1 };
+            Current = this;
 
             InputCommand = new Command<string>(value =>
             {
@@ -1278,6 +849,11 @@ namespace Xamarin.Forms.MathDisplay
 #endif
         }
 
+        public void Delete()
+        {
+
+        }
+
         public void MoveCursor(CursorKey key)
         {
             int sign;
@@ -1295,354 +871,40 @@ namespace Xamarin.Forms.MathDisplay
             }
 
             CursorPosition += sign;
-            return;
-
-            int index = CursorPosition + sign;
-
-            if (index < 0 || index > Text.Length)
-            {
-                //return;
-            }
-
-            return;
-
-            CursorPosition += sign;
-
-            /*Test oldPosition = new Test(Expression, LocalIndex);
-            LinkedListNode<Node<object>> node = Current;
-
-            LinkedListNode<Node<object>> cursor = Current;
-            RemoveAt(CursorPosition);
-            oldPosition.List.RemoveAt(oldPosition.Index);
-
-            Expression.Insert(LocalIndex, Current);*/
         }
 
         private object CoerceCursorPosition(int position)
         {
-            Local.List.OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, Cursor, Local.List.Count - 1 - Local.Index));
+            /*Current?.OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, Cursor, LocalIndex + 1));
 
-            Test old = new Test(Local.List, Local.Index) { Parent = Local.Parent, Node = Local.Node, Position = Local.Position };
-            int diff = Local.Position - position;
-            int sign = Math.Sign(diff);
-            int index = Local.Index + sign;
+            Section current = Current;
+            int sign = Math.Sign(position - CursorPosition);
 
-            if (index < 0 || index > Local.List.Count)
+            for (int i = CursorPosition; i != position; i += sign)
             {
-                diff += sign;
-            }
+                MathViewModel math = List[i - 1];
+                LocalIndex += sign;
 
-            Local = Move(Local, diff);
-
-            while ((Local.List == old.List && Local.Index == old.Index) || Local.Node.Value.Value.Equals("/"))
-            {
-                Local = Move(Local, sign);
-            }
-
-            Local.List.OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, Cursor, Local.List.Count - Local.Index));
-
-            return Local.Position;
-            //entry.Local = entry.Move(entry.Local, (int)oldValue - (int)newValue);
-
-            //return value;
-        }
-
-        public int IndexOf(object value)
-        {
-            Test pos = Local;
-            while (pos.Node?.Value.Value != value)
-            {
-                throw new NotImplementedException();
-            }
-
-            return Text.Length - pos.Index;
-        }
-
-        public void Insert(object value) => Insert(CursorPosition, value);// AddRelative(true, Local.Node?.Value.Value, value, CursorPosition);
-        /*private void Insert(LinkedListNode<Node<object>> newNode) => AddRelative(true, Local.Node?.Value.Value, newNode, CursorPosition);
-
-        public void AddBefore(object reference, object value, int indexGuess = 0) => AddRelative(true, reference, value, indexGuess);
-        public void AddAfter(object reference, object value, int indexGuess = 0) => AddRelative(false, reference, value, indexGuess);
-
-        private void AddRelative(bool before, object reference, object value, int indexGuess) => AddRelative(before, reference, new LinkedListNode<Node<object>>(new Node<object>(value)), indexGuess);*/
-
-        //private void AddRelative(bool before, object reference, LinkedListNode<Node<object>> newNode, int indexGuess)
-        public void Insert(int index, object value) => Insert(index, new LinkedListNode<Node<object>>(new Node<object>(value)));
-
-        private void Insert(int index, LinkedListNode<Node<object>> newNode)
-        {
-            //Text = (Text ?? string.Empty).Insert(index, newNode.Value.Value.ToString());
-            //CursorPosition++;
-
-            //OnPropertyChanging(nameof(CursorPosition));
-
-            //Node<object> node = new Node<object>(newNode);
-            Test pos = Move(Local, Local.Position - (Text.Length - index));
-            /*while (pos.Node?.Value.Value != reference)
-            {
-                pos = Move(pos, Math.Sign(indexGuess - CursorPosition));
-            }*/
-
-            if (pos.Node == null)
-            {
-                Root.Value.Children.AddLast(newNode);
-            }
-            else
-            {
-                pos.Node.List.AddBefore(pos.Node, newNode);
-            }
-
-            newNode.Value.ParentNode = pos.Node?.Value.ParentNode ?? Root;
-            pos.List.OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, newNode.Value.Value, pos.List.Count - 1 - pos.Index));
-            
-            Text += "l";// newNode.Value.Value.ToString();
-            OnPropertyChanged(nameof(CursorPosition));
-            //CursorPosition = CursorPosition;
-            //pos.Index += (pos.List.Count > 1 ? 1 : 0);
-            //CursorPosition++;
-        }
-
-        public bool Delete()
-        {
-            RemoveAt(CursorPosition - 1);
-
-            return true;
-        }
-
-        private void RemoveAt(int index) //object value, int indexGuess = 0)
-        {
-            if (index < 0 || index >= Text.Length)
-            {
-                return;
-            }
-
-            int diff = Local.Position - (Text.Length - index);
-            Test pos = new Test(Local.List, Local.Index) { Parent = Local.Parent, Node = Local.Node, Position = Local.Position };
-            
-            if (diff == 0)
-            {
-                Local = Move(Local, 1);
-            }
-            else
-            {
-                pos = Move(pos, diff);
-            }
-
-            /*if (pos.Node == Local.Node)
-            {
-                Test test = Move(new Test(pos.List, pos.Index) { Parent = pos.Parent, Node = pos.Node }, 1);
-                Local.Node = test.Node;
-            }*/
-
-            pos.Node.List.Remove(pos.Node);
-            pos.List.OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, pos.Node.Value.Value, pos.List.Count - pos.Index));
-
-            Text = Text.Remove(index, 1);
-        }
-
-        /*private Cursor(Cursor other, int diff)
-        {
-            Entry = other.Entry;
-            Stack = new Stack<Test>(other.Stack.Select(test => new Test(test.List, test.Index)));
-            Visitor = other.Visitor;
-            Current = other.Current;
-
-            int sign = Math.Sign(diff);
-
-            for (diff = Math.Abs(diff); diff > 0; diff--)
-            {
-                ObservableLinkedList<object> last = null;
-                if (Current.Value.Value is TextViewModel || Current.Value.Value is CursorViewModel)
+                if (LocalIndex < 0 || LocalIndex > current.Count)
                 {
-                    last = Parent;
+                    current = math.Children as Section;
+                    Indices.RemoveAt(Indices.Count - 1);
                 }
-
-                do
+                else if (math.Children != null)
                 {
-                    Current = sign == -1 ? Visitor.Before(Current) : Visitor.After(Current);
-
-                    if (Current.Value.Value is ObservableLinkedList<object> expression)
-                    {
-                        if (expression == Parent)
-                        {
-                            Stack.Pop();
-                        }
-                        else
-                        {
-                            Stack.Push(new Test(expression, sign == -1 ? 0 : expression.Count));
-                        }
-                    }
-                }
-                while (Current.Value.Children != null);
-
-                if (last == Parent || Current.Value.Value.Equals("/"))
-                {
-                    LocalIndex += sign;
+                    Indices.Add(sign == 1 ? 0 : (math.Children as Section)?.Count ?? (math.Children as IList).Count);
                 }
             }
-        }
 
-        public static Cursor operator +(Cursor cursor, int count) => new Cursor(cursor, count);
-        public static Cursor operator -(Cursor cursor, int count) => new Cursor(cursor, -count);
+            Current?.OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, Cursor, LocalIndex + 1));*/
 
-        public void Insert(object value) => Insert(new LinkedListNode<Node<object>>(new Node<object>(value)));*/
-
-        /*private void Merge((LinkedListNode<Node<object>>, Stack<Test>, int) offset)
-        {
-            Current = offset.Item1;
-            Stack.RemoveRange(Stack.Count - 1 - offset.Item3, offset.Item3 + 1);
-
-            foreach (Test test in offset.Item2.Reverse())
-            {
-                Stack.Add(test);
-            }
-        }*/
-
-        private Test Move(Test local, int diff)
-        {
-            //Stack<Test> stack = new Stack<Test>();
-            //stack.Push(new Test(Stack.Last().List, Stack.Last().Index));
-            //int up = Stack.Count - 1;
-
-            int sign = Math.Sign(diff);
-
-            for (diff = Math.Abs(diff); diff > 0; diff--)
-            {
-                ObservableLinkedList<object> last = null;
-                if (local.Node == null || local.Node.Value.Value is MathViewModel)// || local.Node.Value.Value is CursorViewModel)
-                {
-                    last = local.List;
-                }
-
-                do
-                {
-                    local.Node = sign == -1 ? (local.Node == null ? Root.Value.Children.Last : Visitor.Before(local.Node)) : Visitor.After(local.Node);
-
-                    if (local.Node == null)
-                    {
-                        break;
-                    }
-                    else if (local.Node.Value.Value is ObservableLinkedList<object> expression)
-                    {
-                        if (expression == local.List)
-                        {
-                            /*if (stack.Count == 0)
-                            {
-                                if (--up < 0)
-                                {
-                                    return (node, stack, up);
-                                }
-
-                                stack.Push(new Test(Stack[up].List, Stack[up].Index));
-                            }
-                            else
-                            {
-                                stack.Pop();
-                            }*/
-
-                            if (local.Parent == null)
-                            {
-                                return local;
-                            }
-
-                            local = local.Parent;
-                        }
-                        else
-                        {
-                            local = new Test(expression, sign == -1 ? expression.Count : 0) { Parent = local, Node = local.Node };
-                        }
-                    }
-                }
-                while (local.Node.Value.Children != null);
-
-                if (last == local.List || local.Node?.Value.Value.Equals("/") == true)
-                //if (local.Node?.Value.Value is MathViewModel)
-                {
-                    local.Index -= sign;
-                }
-
-                local.Position -= sign;
-            }
-
-            return local.Index >= 0 && local.Index <= local.List.Count ? local : local.Parent;
+            return position;
         }
 
         public static readonly MathViewModel LeftParenthesis = new TextViewModel { Text = "(" };
         public static readonly MathViewModel RightParenthesis = new TextViewModel { Text = ")" };
 
-        /*public void SetCursor(object left, object right, int direction = 1, bool fromCursor = false)
-        {
-            if (!fromCursor)
-            {
-                if (direction == 1)
-                {
-                    Cursor.Reset();
-                }
-                else if (direction == -1)
-                {
-                    Cursor.End();
-                }
-            }
-
-            bool matchLeft = false, matchRight = false;
-            while (!matchLeft || !matchRight)
-            {
-                matchLeft = Cursor.Top.Current == left;
-                if (!Cursor.MoveNext())
-                {
-                    break;
-                }
-                matchRight = Cursor.Top.Current == right;
-            }
-
-
-        }*/
-
-        public object this[int i]
-        {
-            get
-            {
-                if ((CursorPosition - i) * 2 < i + 1)
-                {
-
-                }
-
-                return null;
-            }
-        }
-
-        private string InternalText;
-
-        protected override void OnTextChanged(string oldText, string newText)
-        {
-            return;
-            if (newText == InternalText)
-            {
-                return;
-            }
-
-            int begin;
-            for (begin = 0; begin < oldText.Length && begin < newText.Length && oldText[begin] == newText[begin]; begin++) { }
-            int end;
-            for (end = Math.Min(oldText.Length, newText.Length) - 1; end >= 0 && oldText[end] == newText[end]; end++) { }
-
-            if (begin + end == oldText.Length)
-            {
-                // Insert
-            }
-            else if (begin + end == newText.Length)
-            {
-                // Delete
-            }
-            else
-            {
-                base.OnTextChanged(oldText, newText);
-            }
-        }
-
-        public void Type(string str) => Type(CursorPosition, str);
-
-        public void Type(int index, string str)
+        public void Type(string str)
         {
             if (str.Length == 0)
             {
@@ -1650,490 +912,321 @@ namespace Xamarin.Forms.MathDisplay
             }
 
             //Suround previous thing with parentheses if it's an exponent or a fraction
-            /*if (str[0] == '^' && itr.MovePrev())
-            {
-                if ((itr.Current is ExpressionViewModel expression && expression.TextFormat == TextFormatting.Superscript) || itr.Current is FractionViewModel)
-                {
-                    //itr.MovePrev();
-                    //itr.BeginningOfPreviousMathObject();
 
-                    itr.AddPrev(LeftParenthesis);
-                    itr.AddPrev(RightParenthesis);
-                    itr.MoveNext();
-
-                    //Expression.Children.Insert(Expression.Children.BeginningOfPreviousMathObject(Index++), LeftParenthesis);
-                    //Expression.Children.Insert(Index++, RightParenthesis);
-                }
-                
-                itr.MoveNext();
-            }*/
-
-            LinkedListNode<Node<object>> node;
+            IList<MathViewModel> list;
 
             if (str == "(")
             {
-                node = new LinkedListNode<Node<object>>(new Node<object> { Value = LeftParenthesis });
+                list = new List<MathViewModel> { LeftParenthesis };
             }
             else if (str == ")")
             {
-                node = new LinkedListNode<Node<object>>(new Node<object> { Value = RightParenthesis });
+                list = new List<MathViewModel> { RightParenthesis };
             }
             else
             {
-                IList<Node<object>> list = Reader<ObservableCollection<Node<object>>>.Render(str);// Crunch.Machine.StringClassification.Simple(str));
-                if (list.Count == 1)
-                {
-                    node = new LinkedListNode<Node<object>>(list[0]);
-                }
-                else
-                {
-                    node = new LinkedListNode<Node<object>>(null);
-                    node.Value.Children = new LinkedList<Node<object>>(list);
-                }
+                list = Reader<ObservableCollection<MathViewModel>>.Render(str);// Crunch.Machine.StringClassification.Simple(str));
 
-                if (node.Value.Children != null)
+                /*if (node.Value.Children != null)
                 {
                     foreach (Node<object> child in node.Value.Children)
                     {
                         child.ParentNode = node;
                     }
-                }
-
-                /*if (node.Value.Value is FractionViewModel fraction1)
-                {
-                    List<ObservableLinkedList<object>> parts = new List<ObservableLinkedList<object>>();
-
-                    for (LinkedListNode<Node<object>> next = node.Value.Children.First; next != null; next = next.Next)
-                    {
-                        if (!(next.Value.Value is ObservableLinkedList<object>))
-                        {
-                            continue;
-                        }
-
-                        next.Value.Children = new LinkedList<Node<object>>
-                        {
-                            new Node<object>("("),
-                            new Node<object>
-                            {
-                                Children = new LinkedList<Node<object>>()
-                            },
-                            new Node<object>(")"),
-                        };
-                        LinkedListNode<Node<object>> part = next.Value.Children.First.Next;
-                        parts.Add(new ObservableLinkedList<object>(part));
-                        part.Value.Value = parts.Last();
-
-                        foreach (Node<object> child in next.Value.Children)
-                        {
-                            child.ParentNode = next;
-                        }
-
-                        next.Value.Value = null;
-                    }
-
-                    fraction1.Numerator = parts[0];
-                    fraction1.Denominator = parts[1];
                 }*/
+
+                // Populate numerator of fraction
             }
 
-            Insert(CursorPosition, node);
-            //Expression.Insert(LocalIndex++, node);
+            // Insert into structure
+            Insert(str, list[0]);
 
-            if (node.Value.ChildrenList != null && node.Value.ChildrenList.Count > 0 && node.Value.ChildrenList.Last().Value == null)
+            //RichTextChanged?.Invoke(this, new CharCollectionChangedEventArgs { Action = NotifyCollectionChangedAction.Add, Tree = null, Text = str, Index = index });
+
+            /*if (node.Value.ChildrenList != null && node.Value.ChildrenList.Count > 0 && node.Value.ChildrenList.Last().Value == null)
             {
                 MoveCursor(CursorKey.Left);
+            }*/
+        }
+
+        public class NodeWrapper : INode
+        {
+            private object SomeNode;
+
+            public string Classification => throw new NotImplementedException();
+
+            public IEnumerator<INode> GetEnumerator()
+            {
+                throw new NotImplementedException();
             }
 
-            /*IBiEnumerator<Node<object>> itr = new Tree<object>.Enumerator(node);
-            while (itr.MoveNext())
+            IEnumerator IEnumerable.GetEnumerator()
             {
-                if (itr.Current.ChildrenList == null)
+                throw new NotImplementedException();
+            }
+        }
+
+        public interface INode : IEnumerable<INode>
+        {
+            string Classification { get; }
+        }
+
+        public class ParentNode
+        {
+            public event EventHandler<NotifyCollectionChangedEventArgs> ChildrenChangedEvent;
+
+            public void OnChildrenChanged(NotifyCollectionChangedEventArgs e)
+            {
+                ChildrenChangedEvent?.Invoke(this, e);
+            }
+        }
+
+        public class CursorTest : BindableObject
+        {
+            public event EventHandler<NotifyCollectionChangedEventArgs> ChildrenChangedEvent;
+
+            public static BindableProperty ParentProperty;
+
+            private List<int> Trace;
+            private int Index
+            {
+                get => Trace.Last();
+                set => Trace[Trace.Count - 1] = value;
+            }
+
+            private Stack<ParentNode> Parents;
+
+            public INode Parent
+            {
+                get => (INode)GetValue(ParentProperty);
+                set => SetValue(ParentProperty, value);
+            }
+
+            public void Advance(int count)
+            {
+                int depthChange = 0;
+                int sign = Math.Sign(count);
+
+                for (int i = 0; i < depthChange; i++)
                 {
-                    continue;
+                    // Going further down the tree
+                    if (depthChange > 0)
+                    {
+                        Trace.Add(sign > 0 ? 0 : -1);
+                        Parents.Push(new ParentNode());
+                    }
+                    // Heading back up the tree
+                    else if (depthChange < 0)
+                    {
+                        Trace.RemoveAt(Trace.Count - 1);
+                    }
                 }
 
-                for (int i = 0; i < itr.Current.ChildrenList.Count; i++)
+                Index++;
+            }
+
+            public void Insert(string text, MathViewModel math = null)
+            {
+                if (ChildrenChangedEvent == null)
                 {
-                    Node<object> item = itr.Current.ChildrenList[i];
-                    IList<Node<object>> children = item?.ChildrenList;
+                    return;
+                }
 
-                    if (item.Value != null)
+                NotifyCollectionChangedEventArgs e = new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, math, Index);
+                Parents.Peek().OnChildrenChanged(e);
+
+                Delegate[] listeners = ChildrenChangedEvent.GetInvocationList();
+                listeners[listeners.Length - 1].DynamicInvoke(this, new EventArgs());
+            }
+        }
+
+        public void RemoveAt(int index)
+        {
+            MathViewModel math = List[index];
+            //int localIndex = index == CursorPosition ? LocalIndex : LocalIndexOf(math);
+
+            
+
+            if (index - 1 >= CursorPosition)
+            {
+                CursorPosition--;
+            }
+        }
+
+        public void Insert(string text, MathViewModel math = null)
+        {
+
+        }
+
+        private List<Cursor> Cursors = new List<Cursor>();
+
+        private class Cursor : IDisposable
+        {
+            public int Index
+            {
+                get => Entry.Count - IndexFromEnd;
+                set => IndexFromEnd = Entry.Count - value;
+            }
+
+            private int IndexFromEnd;
+
+            private class Test
+            {
+                public MathViewModel Parent;
+                public int LocalIndex;
+            }
+
+            private List<Test> Trace;
+            private int LocalIndex
+            {
+                get => Trace.Last().LocalIndex;
+                set => Trace[Trace.Count - 1].LocalIndex = value;
+            }
+
+            private MathViewModel Parent => Trace.Last().Parent;
+
+            private MathEntryViewModel Entry;
+
+            public Cursor(MathEntryViewModel entry)
+            {
+                Entry = entry;
+
+                Entry.Cursors.Add(this);
+                Trace.Add(new Test { LocalIndex = -1, Parent = Entry });
+            }
+
+            public bool Advance(int count)
+            {
+                int sign = Math.Sign(count);
+
+                for (int i = 0; i < count; i++)
+                {
+                    LocalIndex += sign;
+
+                    if (LocalIndex < 0 || LocalIndex > Parent.Count)
                     {
-                        continue;
+                        Trace.RemoveAt(Trace.Count - 1);
                     }
-
-                    if (children == null)
+                    else if (false)
                     {
-                        children = new ObservableCollection<Node<object>>();
 
-                        if (item.Value != null)
+                    }
+                }
+
+                return true;
+            }
+
+            public void Insert(string text, MathViewModel math = null)
+            {
+                Entry.List.Insert(Index, math);
+                Parent.Insert(LocalIndex, math);
+            }
+
+            public void Dispose()
+            {
+                Entry.Cursors.Remove(this);
+            }
+        }
+
+        public void Insert(int index, string text, MathViewModel math = null)
+        {
+            if (index < 0 || index > Count)
+            {
+                throw new IndexOutOfRangeException();
+            }
+
+            IEnumerable tree = new List<MathViewModel> { math };
+
+            if (math == null)
+            {
+                // parse
+                throw new NotImplementedException();
+            }
+
+            Text = Text.Insert(index, text);
+            List.InsertRange(index, text.Select(c => new TextViewModel { Text = c.ToString() }));
+
+            MathViewModel parent = index == Count ? this : List[index].Parent;
+            parent.Insert(LocalIndex, math);
+        }
+
+        public void AddBefore(MathViewModel source, MathViewModel value) => AddRelative(source, value, true);
+        public void AddAfter(MathViewModel source, MathViewModel value) => AddRelative(source, value, false);
+
+        private void AddRelative(MathViewModel source, MathViewModel value, bool before)
+        {
+
+        }
+
+        private int LocalIndexOf(MathViewModel math)
+        {
+            if (math.Parent.Children is IList list)
+            {
+                return list.IndexOf(math);
+            }
+            else
+            {
+                IEnumerator enumerator = math.Children.GetEditEnumerator();
+                int i = 0;
+                for (; enumerator.MoveNext(); i++)
+                {
+                    if (enumerator.Current == math)
+                    {
+                        return i;
+                    }
+                }
+
+                return -1;
+            }
+        }
+
+        private class Section : INotifyCollectionChanged, IEnumerable
+        {
+            public int Count { get; private set; }
+
+            private MathEntryViewModel Entry;
+            private MathViewModel Value;
+            private int Index;
+
+            public Section(MathEntryViewModel entry, MathViewModel value, int index)
+            {
+                Entry = entry;
+                Value = value;
+                Index = index;
+            }
+
+            public event NotifyCollectionChangedEventHandler CollectionChanged;
+
+            public void OnCollectionChanged(NotifyCollectionChangedEventArgs e)
+            {
+                if (e.Action == NotifyCollectionChangedAction.Add)
+                {
+                    Count += e.NewItems.Count;
+                }
+                else if (e.Action == NotifyCollectionChangedAction.Remove)
+                {
+                    Count -= e.OldItems.Count;
+                }
+
+                CollectionChanged?.Invoke(this, e);
+            }
+
+            public IEnumerator GetEnumerator()
+            {
+                if (Count > 0)
+                {
+                    MathViewModel parent = Value?.Parent ?? Entry;
+
+                    foreach (MathViewModel math in Entry.List)
+                    {
+                        if (math.Parent == parent)
                         {
-                            children.Add(item);
+                            yield return math;
                         }
-
-                        item = itr.Current.ChildrenList[i] = new Node<object> { Parent = itr.Current };
                     }
-
-                    children.Insert(0, new Node<object> { Value = new Parenthesis(item, true) });
-                    children.Add(new Node<object> { Value = new Parenthesis(item, false) });
-
-                    item.SetChildren(children);
-                }
-            }*/
-
-            /*if (node.Value is FractionViewModel fraction && fraction.Children.First.Value.Children.Count == 0)
-            {
-                //Cursor.MovePrev();
-                //fraction.ChildrenList[0].Children = new LinkedList<Node<object>>();
-                LinkedListNode<Node<object>> current = Current;
-                int count = MathViewModelExtensions.BeginningOfPreviousMathObject(ref current);
-                
-                while (current.Value.Value != Cursor)
-                {
-                    Node<object> value = current.Value;
-
-                    current = current.Next;
-                    //Remove(Current, -1);
-                    //Expression.OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, node, --LocalIndex));
-
-                    fraction.Children.First.Value.Children.AddLast(value);
-                    value.ParentNode = fraction.Children.First;
-                }
-            }*/
-
-            //Current.List.AddBefore(Current, node);
-            //Editor.Top.Insert(node.Value.Value);
-            //node.Value.ParentNode = Current.Value.ParentNode;
-            //Expression.OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, node.Value.Value, LocalIndex++));
-
-            /*foreach (Node<object> item in node.Value == null ? node.ChildrenList : new List<Node<object>> { node })
-            {
-                Cursor.AddPrev(item);
-            }*/
-
-            /*LinkedListNode<Node<object>> temp = Current.List.Last;
-            while (temp != null)
-            {
-                Print.Log(temp.Value.Value?.GetType(), temp.Value.Value);
-                temp = Prev(temp);
-            }*/
-
-            //CursorPosition += str.Length;
-            //Text = Text?.Insert(CursorPosition + n + (n < 0 ? 1 : -1), str) ?? str;
-            //OnPropertyChanged(nameof(CursorPosition));
-        }
-
-#if false
-        private int InternalCursorPosition;
-
-        /*public void SetCursor(int index, IList parent, int direction = 1, bool relative = false)
-        {
-            direction = Math.Sign(direction);
-
-            if (!relative)
-            {
-                //Move(direction == 1 ? -CursorPosition : (Count - CursorPosition));
-                Move(-CursorPosition);
-            }
-
-            parent.Insert(index, Cursor);
-
-            while (Cursor.Current != Cursor)
-            {
-                Move(direction);
-            }
-
-            CursorPosition = InternalCursorPosition;
-        }*/
-
-        public bool SetCursor(object item, bool isAfter, bool searchFromEnd = false, bool? searchDirection = null) => SetCursor(isAfter ? 1 : -1, item, searchFromEnd, searchDirection);
-        private bool SetCursor(int n, object item = null, bool? searchFromEnd = null, bool? searchDirection = null)
-        {
-            int sign = Math.Sign(n);
-
-            //Cursor.Itr.Move(-sign);
-            //Cursor.Itr.Remove(sign);
-
-            /*string a = "test".ToString();
-            string b = "test".ToString();
-            List<object> list = new List<object> { a, b };
-            Print.Log(string.IsInterned(a), string.IsInterned(b), a == b, a.Equals(b), b.Equals(a), Equals(a, b), ReferenceEquals(a, b));
-            Print.Log(list[0] == list[1], list[0].Equals(list[1]), list[1].Equals(list[0]), Equals(list[0], list[1]), ReferenceEquals(list[0], list[1]));*/
-
-            if (!CursorVM.Move(sign) || !Find(CursorVM, item ?? CursorVM.Current, searchFromEnd, searchDirection))// !Find(item ?? Cursor.Current, Cursor, sign, Cursor, searchFromEnd, searchDirection))
-            {
-                sign = -sign;
-                //Cursor.Itr.Add(sign, Cursor);
-
-                return false;
-            }
-
-            CursorVM.Add(n, CursorVM);
-            //Cursor.Move(sign);
-
-            return true;
-        }
-
-        public bool AddBefore(object item, object value, bool searchFromEnd = false, bool? searchDirection = null) => AddRelative(-1, item, value, searchFromEnd, searchDirection);
-        public bool AddAfter(object item, object value, bool searchFromEnd = false, bool? searchDirection = null) => AddRelative(1, item, value, searchFromEnd, searchDirection);
-
-        private bool AddRelative(int direction, object item, object value, bool searchFromEnd = false, bool? searchDirection = null)
-        {
-            IEditEnumerator<object> itr = GetEditEnumerator();
-
-            if (!Find(itr, item, searchFromEnd, searchDirection))
-            {
-                return false;
-            }
-
-            itr.Add(Math.Sign(direction), value);
-            return true;
-        }
-
-        private IEditEnumerator<object> GetEditEnumerator() => new CursorViewModel(null);
-
-        private static bool Find<T>(IBiEnumerator<T> itr, T item, bool? searchFromEnd = null, bool? searchRight = null)
-        {
-            if (searchFromEnd == true)
-            {
-                itr.End();
-                itr.MovePrev();
-            }
-            else if (searchFromEnd == false)
-            {
-                itr.Reset();
-                itr.MoveNext();
-            }
-
-            int sign = searchRight.HasValue ? (searchRight.Value ? 1 : -1) : (searchFromEnd == true ? -1 : 1);
-
-            object start = itr.Current;
-            while (!Equals(itr.Current, item))
-            {
-                if (!itr.Move(sign))
-                {
-                    if (sign == -1)
-                    {
-                        itr.End();
-                    }
-                    else if (sign == 1)
-                    {
-                        itr.Reset();
-                    }
-
-                    itr.Move(sign);
-                }
-
-                if (Equals(itr.Current, start))
-                {
-                    return false;
                 }
             }
-
-            return true;
-
-            //itr.Add(n, value);
-
-            //sign = Math.Sign(n);
-
-            /*for (int i = 0; i < Math.Abs(n) - 1; i++)
-            {
-                if (!itr.Move(sign))
-                {
-                    return false;
-                }
-            }
-
-            itr.Add(sign, value);
-            //itr.Move(sign);
-            while (!Equals(itr.Current, value))
-            {
-                itr.Move(sign);
-            }*/
         }
-
-        protected virtual void OnCursorPositionChanging(int oldValue, int newValue)
-        {
-            CursorPositionChanging?.Invoke(this, new ChangedEventArgs<int>(oldValue, newValue));
-        }
-
-        protected virtual void OnCursorPositionChanged(int oldValue, int newValue)
-        {
-            int diff = newValue - oldValue;
-            //Cursor.Itr.Move(diff);
-
-            return;
-
-            int sign = Math.Sign(diff);
-
-            if (diff != 0 && !CursorVM.Move(diff))
-            {
-                sign *= -1;
-            }
-
-            InternalCursorPosition = newValue;
-        }
-
-        private void Add(LinkedListNode<Node<object>> node, LinkedListNode<Node<object>> value, int n)
-        {
-            if (n < 0)
-            {
-                node.List.AddBefore(node, value);
-            }
-            else if (n > 0)
-            {
-                node.List.AddAfter(node, value);
-            }
-        }
-
-        /*public void RemoveAt(int index)
-        {
-            LinkedListNode<Node<object>> node = Current;
-            int sign = Math.Sign(index - CursorPosition);
-
-            for (int i = 0; i < Math.Abs(index - CursorPosition); i++)
-            {
-                node = sign == -1 ? node.Previous : node.Next;
-            }
-
-            if (node == Current)
-            {
-
-            }
-            else
-            {
-                node.List.Remove(node);
-            }
-        }*/
-
-        private void Remove(LinkedListNode<Node<object>> node, int n)
-        {
-            if (n < 0)
-            {
-                node.List.Remove(node.Previous);
-            }
-            else if (n > 0)
-            {
-                node.List.Remove(node.Next);
-            }
-        }
-
-        public static LinkedListNode<Node<T>> Prev<T>(LinkedListNode<Node<T>> node)
-        {
-            if (node.Value.Children != null && node.Value.Children.Count > 0)
-            {
-                return node.Value.Children.Last;
-            }
-
-            while (node != null && node.Previous == null)
-            {
-                node = node.Value.ParentNode;
-            }
-
-            return node?.Previous;
-
-            if (node.Previous == null)
-            {
-                return node.Value.ParentNode;
-            }
-
-            node = node.Previous;
-
-            while (node.Value.Children != null && node.Value.Children.Count > 0)
-            {
-                node = node.Value.Children.Last;
-            }
-
-            return node;
-        }
-
-        public static LinkedListNode<Node<T>> Next<T>(LinkedListNode<Node<T>> node)
-        {
-            if (node.Value.Children != null && node.Value.Children.Count > 0)
-            {
-                return node.Value.Children.First;
-            }
-
-            while (node != null && node.Next == null)
-            {
-                node = node.Value.ParentNode;
-            }
-
-            return node?.Next;
-        }
-
-        private bool CanAddHere(bool before) // => Cursor.Current is Parenthesis parenthesis && parenthesis.Expression.Parent != null && parenthesis.Expression.Parent.Children[parenthesis.Expression.Parent.Children.IndexOf( //parenthesis.Expression.Parent.Children[sign == -1 ? 0 : (parenthesis.Expression.Parent.Children.Count - 1)] != parenthesis.Expression;
-        {
-            if (CursorVM.Current is Parenthesis parenthesis && parenthesis.Opening == before && parenthesis?.Expression.Parent != null)
-            {
-                IList<Node<object>> children = parenthesis.Expression.Parent.ChildrenList;
-                int index = children.IndexOf(parenthesis.Expression) + (before ? -1 : 1);
-
-                if (index >= 0 && index < children.Count && children[index].Value == null)
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        // Below taken from https://www.geeksforgeeks.org/edit-distance-dp-5/
-        static int min(int x, int y, int z)
-        {
-            if (x <= y && x <= z)
-                return x;
-            if (y <= x && y <= z)
-                return y;
-            else
-                return z;
-        }
-
-        static int editDist(string str1, string str2, int m, int n)
-        {
-            // If first string is empty, the only option is to 
-            // insert all characters of second string into first 
-            if (m == 0)
-                return n;
-
-            // If second string is empty, the only option is to 
-            // remove all characters of first string 
-            if (n == 0)
-                return m;
-
-            // If last characters of two strings are same, nothing 
-            // much to do. Ignore last characters and get count for 
-            // remaining strings. 
-            if (str1[m - 1] == str2[n - 1])
-                return editDist(str1, str2, m - 1, n - 1);
-
-            // If last characters are not same, consider all three 
-            // operations on last character of first string, recursively 
-            // compute minimum cost for all three operations and take 
-            // minimum of three values. 
-            return 1 + min(editDist(str1, str2, m, n - 1), // Insert 
-                           editDist(str1, str2, m - 1, n), // Remove 
-                           editDist(str1, str2, m - 1, n - 1) // Replace 
-                           );
-        }
-#endif
-
-        /*public IEditEnumerator<object> GetEnumerator()
-        {
-            throw new NotImplementedException();
-        }
-
-#region EditEnumerableOverloads
-        IEditEnumerator IEditEnumerable.GetEnumerator() => GetEnumerator();
-
-        IBiEnumerator<object> IBiEnumerable<object>.GetEnumerator() => GetEnumerator();
-
-        IBiEnumerator IBiEnumerable.GetEnumerator() => GetEnumerator();
-
-        IEnumerator<object> IEnumerable<object>.GetEnumerator() => GetEnumerator();
-
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-#endregion*/
     }
 
     public static class MathViewModelExtensions
